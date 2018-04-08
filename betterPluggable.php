@@ -10,13 +10,12 @@ declare(strict_types=1);
  * @link    https://github.com/AliceWonderMiscreations/PluggableUnplugged
  */
 
+require_once(__DIR__ . '/lib/UnpluggedStatic.php');
+use \AWonderPHP\PluggableUnplugged\UnpluggedStatic as UnpluggedStatic;
+
 // make sure PHP has what we need
 
-if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
-    require_once(__DIR__ . '/lib/UnpluggedStatic.php');
-  
-    use \AWonderPHP\PluggableUnplugged\UnpluggedStatic as UnpluggedStatic;
-  
+if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {  
     /* hash, salt, and nonce functions */
     
     /**
@@ -59,7 +58,7 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
         if (in_array($scheme, array('auth', 'secure_auth', 'logged_in', 'nonce'))) {
             foreach (array('key', 'salt') as $type) {
                 $const = strtoupper("{$scheme}_{$type}");
-                if (defined($const) && constant($const) && empty($duplicated_keys[constant($const))) {
+                if (defined($const) && constant($const) && empty($duplicated_keys[constant($const)])) {
                     $values[$type] = constant($const);
                 } elseif (! $values[$type]) {
                     $values[$type] = get_site_option("{$scheme}_{$type}");

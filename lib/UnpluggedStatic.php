@@ -119,22 +119,18 @@ class UnpluggedStatic
      * If the specified number of bytes us null then SODIUM_CRYPTO_GENERICHASH_BYTES
      * is used.
      *
-     * @param string $data The string to be hashed.
-     * @param string $salt The key (salt) to be used.
-     * @param null|int $bytes Optional. The length in bytes for the hash. Defaults to
+     * @param string $data  The string to be hashed.
+     * @param string $salt  The key (salt) to be used.
+     * @param int    $bytes Optional. The length in bytes for the hash. Defaults to
      *                        SODIUM_CRYPTO_GENERICHASH_BYTES.
      *
      * @return string      The base64 encoded hash
      */
-    public static function cryptoHash(string $data, string $salt, $bytes = null): string
+    public static function cryptoHash(string $data, string $salt, int $bytes = 0): string
     {
-        if (is_null($bytes)) {
+        if ($bytes === 0) {
             $bytes = SODIUM_CRYPTO_GENERICHASH_BYTES;
         }
-        if (! is_numeric($bytes)) {
-            $bytes = SODIUM_CRYPTO_GENERICHASH_BYTES;
-        }
-        $bytes = (int) $bytes;
         if ($bytes > SODIUM_CRYPTO_GENERICHASH_BYTES_MAX) {
             $bytes = SODIUM_CRYPTO_GENERICHASH_BYTES_MAX;
         }
@@ -156,7 +152,7 @@ class UnpluggedStatic
      * @param int $min Optional. The lower limit inclusive.
      * @param int $max Optional. The max limit inclusive.
      *
-     * @return The random number between min and max inclusive
+     * @return int The random number between min and max inclusive
      */
     public static function safeRandInt(int $min = 0, int $max = 0): int
     {
