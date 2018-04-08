@@ -40,8 +40,11 @@ I have seen no evidence that such measures actually improve the security of a
 website anyway and I fear what some plugins that create callback functions may
 do with the plain text password, thinking they are being helpful.
 
-I will be adding cracklib check on passwords when the cracklib functions are
-available but I do not presently do that.
+I would like to be add a cracklib check on passwords when the cracklib
+functions are available but the
+[PECL extension](https://pecl.php.net/package/crack) has not been updated since
+2005 and has a [known 64-bit bug](https://bugs.php.net/bug.php?id=56611) not
+fixed in a released version.
 
 When a password is verified, there is a 20% chance the hash in the database
 will be updated. This allows for stronger hashes to automatically be migrated
