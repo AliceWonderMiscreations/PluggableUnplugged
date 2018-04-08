@@ -12,7 +12,6 @@ $key = array(
     '\'NONCE_SALT\','
 );
 
-$salts = array();
 for ($i=0; $i<8; $i++) {
     $raw = random_bytes(64);
     $salt = str_shuffle(base64_encode($raw));
