@@ -2,7 +2,14 @@
 declare(strict_types=1);
 
 /**
- * Replacements for some (not all) of the WordPress pluggable.php functions.
+ * Plugin Name: Pluggable Unplugged
+ * Plugin URI:  https://github.com/AliceWonderMiscreations/PluggableUnplugged
+ * Description: Replacements for some (not all) of the WordPress pluggable.php functions.
+ * Version:     0.1
+ * Author:      Alice Wonder Miscreations
+ * Author URI:  https://github.com/AliceWonderMiscreations/
+ * License:     MIT
+ * Licens URI:  https://opensource.org/licenses/MIT
  *
  * @package AWonderPHP/PluggableUnplugged
  * @author  Alice Wonder <paypal@domblogger.net>
@@ -15,7 +22,7 @@ use \AWonderPHP\PluggableUnplugged\UnpluggedStatic as UnpluggedStatic;
 
 // make sure PHP has what we need
 
-if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {  
+if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
     /* hash, salt, and nonce functions */
     
     /**
