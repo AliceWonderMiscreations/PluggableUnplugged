@@ -4,13 +4,14 @@
  * Replacements for some (not all) of the WordPress pluggable.php functions
  *
  */
- 
-use \AWonderPHP\PluggableUnplugged\UnpluggedStatic as UnpluggedStatic;
-
 
 // make sure PHP has what we need
 
 if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
+  
+    require_once(__DIR__ . '/lib/UnpluggedStatic.php');
+  
+    use \AWonderPHP\PluggableUnplugged\UnpluggedStatic as UnpluggedStatic;
   
     /* hash, salt, and nonce functions */
     
@@ -76,6 +77,7 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
                 }
             }
         }
+        // should these actually be initialized as null?
         $values = array('key' => '', 'salt' => '');
         if(defined('SECRET_KEY') && SECRET_KEY && empty($duplicated_keys[SECRET_KEY])) {
             $values['key'] = 'SECRET_KEY';
@@ -113,6 +115,8 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
         }
         
         $cached_salts[$scheme] = $values['key'] . $values['salt'];
+        // I am unsure what benefit there is to allowing filters on a salt,
+        //  does it pose more danger than it is worth?
         return apply_filters('salt', $cached_salts[$scheme], $scheme);
     }
     
@@ -189,32 +193,29 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
     /**
      * Create a cryptographically strong CSRF nonce.
      *
-     * @param int $ttl    Optional. The time in seconds the nonce token is valid for.
-     *                    Defaults to 3 hours. Admin functions should probably be
-     *                    shorter.
-     * @param bool $admin Optional True if an admin action, otherwise false.
-     *                    Defaults to False.
+     * @param int $ttl       Optional. The time in seconds the nonce token is valid for.
+     *                       Defaults to 3 hours. Admin functions should probably be
+     *                       shorter.
+     * @param string $action Optional. Defaults to 'generic'.
      *
      * @return string The 128-bit nonce token.
      */
-    function awm_create_nonce(int $ttl = 10800, bool $admin = false): string
+    function awm_create_nonce(int $ttl = 10800, string $action = 'generic'): string
     {
         $user = wp_get_current_user();
-        // TODO check to see if always created for non-logged in users
-        $wp_session = WP_Session::get_instance();
-        if (! isset($wp_session['valid_nonces'])) {
-            $wp_session['valid_nonces'] = array();
+        $action = trim(strtolower($action));
+        if(strlen($action) === 0) {
+            $action = 'generic';
         }
-        if (! isset($wp_session['admin_nonces'])) {
-            $wp_session['admin_nonces'] = array();
+        $nonce_type = $action . '_nonces';
+        // TODO check to see if always created for non-logged in users
+        $wp_session = \WP_Session::get_instance();
+        if (! isset($wp_session[$nonce_type])) {
+            $wp_session[$nonce_type] = array();
         }
         $nonce = UnpluggedStatic::generateNonce();
         $expires = time() + $ttl;
-        if($admin) {
-          $wp_session['admin_nonces'][$nonce] = $expires;
-        } else {
-          $wp_session['valid_nonces'][$nonce] = $expires;
-        }
+        $wp_session[$nonce_type][$nonce] = $expires;
         return $nonce;
     }
     
@@ -222,43 +223,36 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
      * Validate that a particular nonce is valid, and invalidate it after
      * validation.
      *
-     * @param string $nonce The nonce to validate.
-     * @param bool   $admin Optional True if an admin action, otherwise false.
-     *                      Defaults to False.
+     * @param string $nonce  The nonce to validate.
+     * @param string $action Optional. Defaults to 'generic'.
      *
      * @return bool True if the nonce was valid, otherwise False.
      */
-    function awm_verify_nonce(string $nonce, bool $admin = false): bool
+    function awm_verify_nonce(string $nonce, string $action = 'generic'): bool
     {
         $user = wp_get_current_user();
+        $action = trim(strtolower($action));
+        if(strlen($action) === 0) {
+            $action = 'generic';
+        }
+        $nonce_type = $action . '_nonces';
         // TODO check to see if always created for non-logged in users
         //  and destroyed upon logged in user logout
         $wp_session = WP_Session::get_instance();
-        if(! isset($wp_session['valid_nonces'])) {
-            $wp_session['valid_nonces'] = array();
+        if (! isset($wp_session[$nonce_type])) {
+            return false;
         }
-        if (! isset($wp_session['admin_nonces'])) {
-            $wp_session['admin_nonces'] = array();
+        if (! isset($wp_session[$nonce_type][$nonce])) {
+            return false;
         }
-        if($admin) {
-            if (! isset($wp_session['admin_nonces'][$nonce])) {
-                return false;
-            }
-            $expires = $wp_session['admin_nonces'][$nonce];
-            if ($expires < time()) {
-                return false;
-            }
-            $wp_session['admin_nonces'][$nonce] = 0;
-        } else {
-            if (! isset($wp_session['valid_nonces'][$nonce])) {
-                return false;
-            }
-            $expires = $wp_session['valid_nonces'][$nonce];
-            if ($expires < time()) {
-                return false;
-            }
-            $wp_session['valid_nonces'][$nonce] = 0;
+        if(! is_numeric($wp_session[$nonce_type][$nonce])) {
+            return false;
         }
+        $expires = intval($wp_session[$nonce_type][$nonce], 10);
+        if ($expires < time()) {
+            return false;
+        }
+        $wp_session[$nonce_type][$nonce] = 0;
         return true;
     }
   
