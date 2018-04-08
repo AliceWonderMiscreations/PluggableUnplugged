@@ -8,7 +8,7 @@ The purpose of this plugin is to improve how some of the WordPress
 or newer and have the libsodium wrapper functions available.
 
 At this point in time, PHP 7 should be the norm for any WordPress host, as PHP
-5.6.x only receives security fixes at this point time.
+5.6.x only receives security fixes.
 
 Starting with PHP 7.2, a default build of PHP includes the libsodium extensions
 so it soon will become very common for PHP on commercial hosting companies to
@@ -40,12 +40,20 @@ I have seen no evidence that such measures actually improve the security of a
 website anyway and I fear what some plugins that create callback functions may
 do with the plain text password, thinking they are being helpful.
 
+I will be adding cracklib check on passwords when the cracklib functions are
+available but I do not presently do that.
+
+When a password is verified, there is a 20% chance the hash in the database
+will be updated. This allows for stronger hashes to automatically be migrated
+into use for existing accounts as the server hardware is upgraded allowing for
+stronger (more rounds) hashes.
+
 
 Non-Password Hash, Salt, and Nonce Related
 ------------------------------------------
 
 The WordPress functions for creating non-password related hashes use the PHP
-[`hash_hmac`](http://php.net/manual/en/function.hash-hmac.php) function with
+[`hash_hmac()`](http://php.net/manual/en/function.hash-hmac.php) function with
 `md5` as the algorithm.
 
 There is no good reason to continue using `md5`,
@@ -54,13 +62,13 @@ justifiable reason to keep using it.
 
 The `wp_hash()` function is replaced by one that uses
 `sodium_crypto_generichash()` instead. That is a secure alternative to
-`hash_hmac` and is safe to use.
+`hash_hmac()` and is safe to use.
 
 The `wp_salt()` function that WordPress uses generates salts either using the
 random password generating facilities or by using `hash_hmac()` with `md5`.
 
 The salt generation functions have been replaced to instead create the salt
-using a base64 encoding of 64 bytes of random data from a cryptographically
+using a base64 encoding of 32 bytes of random data from a cryptographically
 secure pRNG or by using `sodium_crypto_generichash()` when it is a salt that
 is not stored but needs to regenerate the same every time it is generated.
 
@@ -74,7 +82,7 @@ use.
 
 When used in the context of
 [CSRF Tokens](https://www.owasp.org/index.php/Cross-Site_Request_Forgery_(CSRF)_Prevention_Cheat_Sheet)
-which is what WordPress uses them for, then need to be random without the
+which is what WordPress uses them for, they need to be random without the
 ability to guess them. That means generated with a quality cryptographically
 secure pRNG with at least 128 bits of entropy.
 
@@ -82,7 +90,7 @@ WordPress intentionally creates them in a predictable fashion and then actually
 reduces the nonce to only 80 bits.
 
 A nonce for a particular action only changes every twelve hours and is still
-valid for twelve hours after it has changed. That violated the very definition
+valid for twelve hours after it has changed. That violates the very definition
 of use once then invalid.
 
 I was not able to completely fix their CSRF nonce infrastructure without
@@ -105,7 +113,7 @@ To compensate, two new functions have been added:
 * `function awm_create_nonce(int $ttl = 10800, string $action = 'generic'): string`
 * `function awm_verify_nonce(string $nonce, string $action = 'generic'): bool`
 
-The first creates a completely random nonce that use 16 bytes of pRNG data (128
+The first creates a completely random nonce that uses 16 bytes of pRNG data (128
 bits) and the second validates a nonce, making the nonce invalid for any future
 validation.
 
