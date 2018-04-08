@@ -16,40 +16,6 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
     /* hash, salt, and nonce functions */
     
     /**
-     * Generates a secure hash of a specified string using the salt associated
-     * with a specified scheme
-     *
-     * @param string $data   Plain text to hash
-     * @param string $scheme Authentication scheme (auth, secure_auth, logged_in, nonce)
-     *
-     * @return string Hash of $data
-     */
-    function wp_hash(string $data, $scheme = 'auth') {
-        $salt = wp_salt($scheme);
-        return UnpluggedStatic::cryptoHash($data, $salt, 16);
-    }
-    
-    /**
-     * Get the time-dependent variable for nonce creation.
-     *
-     * A WordPress CSRF nonce has a lifespan of two ticks.
-     *
-     * Default WP uses 24 hour by default, that's bad. Using 3 hours.
-     * Default WP return float that is an integer. This return an int.
-     * The returned value will always be smaller than time() so even
-     * after 2038 there is no need to return a float.
-     *
-     * @return int Value rounded up to the next highest integer.
-     */
-    function wp_nonce_tick(): int
-    {
-        $nonce_life = apply_filters('nonce_life', 10800);
-        $return = ceil( time() / ( $nonce_life / 2 ) );
-        return intval($return, 10);
-    }
-    
-    // fixme - wp_salt goes here
-    /**
      * Get a salt associated with a specific scheme, setting the salt
      * if need be.
      *
@@ -121,12 +87,45 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
     }
     
     /**
+     * Generates a secure hash of a specified string using the salt associated
+     * with a specified scheme
+     *
+     * @param string $data   Plain text to hash
+     * @param string $scheme Authentication scheme (auth, secure_auth, logged_in, nonce)
+     *
+     * @return string Hash of $data
+     */
+    function wp_hash(string $data, $scheme = 'auth') {
+        $salt = wp_salt($scheme);
+        return UnpluggedStatic::cryptoHash($data, $salt, 16);
+    }
+    
+    /**
+     * Get the time-dependent variable for nonce creation.
+     *
+     * A WordPress CSRF nonce has a lifespan of two ticks.
+     *
+     * Default WP uses 24 hour by default, that's bad. Using 3 hours.
+     * Default WP return float that is an integer. This return an int.
+     * The returned value will always be smaller than time() so even
+     * after 2038 there is no need to return a float.
+     *
+     * @return int Value rounded up to the next highest integer.
+     */
+    function wp_nonce_tick(): int
+    {
+        $nonce_life = apply_filters('nonce_life', 10800);
+        $return = ceil( time() / ( $nonce_life / 2 ) );
+        return intval($return, 10);
+    }
+
+    /**
      * Creates a cryptographic token tied to a specific action, user, user session,
      * and window of time.
      *
      * The WordPress version of this function produces a weak 10 character nonce
      * that is equivalent to just 5 bytes. This version of the function produces a
-     * 16 byte nonce which is the best practices.
+     * 16 byte nonce which is the best practice for a nonce.
      *
      * @param string|int $action Scalar value to add context to the nonce.
      *
@@ -238,7 +237,7 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
         $nonce_type = $action . '_nonces';
         // TODO check to see if always created for non-logged in users
         //  and destroyed upon logged in user logout
-        $wp_session = WP_Session::get_instance();
+        $wp_session = \WP_Session::get_instance();
         if (! isset($wp_session[$nonce_type])) {
             return false;
         }
@@ -255,8 +254,7 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
         $wp_session[$nonce_type][$nonce] = 0;
         return true;
     }
-  
-  
+
     /* Password Functions */
 
     /**
@@ -269,7 +267,7 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
      */
     function wp_set_password(string $password, int $user_id): void
     {
-        // fixme throw exception if bad password
+        // fixme throw exception if bad/weak password
         global $wpdb;
         $hash = UnpluggedStatic::hashPassword($password);
         $wpdb->update(
@@ -286,7 +284,7 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
      *
      * The WordPress version of this function calls a filter called 'random_password'
      * which takes $password as an argument. That is dangerous, so this function
-     * does not.
+     * does not use that filter.
      *
      * @input string $password The password to hash
      *
@@ -304,11 +302,13 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
      *
      * The WordPress version of this function calls a filter called 'check_password'
      * which takes $password as an argument. That is dangerous, so this function
-     * does not.
+     * does not use that filter.
      *
      * @param string     $password The password to be checked
      * @param string     $hash     The hash to be checked
      * @param null|int   $user_id  Optional. The user id to match against
+     *
+     * @return bool True on success, False on failure.
      */
     function wp_check_password(string $password, string $hash, $user_id = null): bool
     {
@@ -333,7 +333,7 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
             // doing things the old way, eh?
             if (empty($wp_hasher)) {
                 require_once( ABSPATH . WPINC . '/class-phpass.php' );
-                $wp_hasher = new PasswordHash(8, true);
+                $wp_hasher = new \PasswordHash(8, true);
             }
             $check = $wp_hasher->CheckPassword($password, $hash);
             if ($check) {
