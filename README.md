@@ -78,7 +78,7 @@ is not stored but needs to regenerate the same every time it is generated.
 ### Nonces
 
 With respect to nonces, WordPress has no fucking right to call what they are
-generate a nonce.
+generating a nonce.
 
 A nonce __by definition__ is only used once and then is invalid for further
 use.

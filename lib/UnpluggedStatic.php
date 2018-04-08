@@ -1,7 +1,20 @@
 <?php
+declare(strict_types=1);
+
+/**
+ * Replacements for some (not all) of the WordPress pluggable.php functions.
+ *
+ * @package AWonderPHP/PluggableUnplugged
+ * @author  Alice Wonder <paypal@domblogger.net>
+ * @license https://opensource.org/licenses/MIT MIT
+ * @link    https://github.com/AliceWonderMiscreations/PluggableUnplugged
+ */
 
 namespace AWonderPHP\PluggableUnplugged;
 
+/**
+ * Static methods of use to pluggable functions and other WordPress plugins
+ */
 class UnpluggedStatic
 {
     /**
@@ -20,7 +33,8 @@ class UnpluggedStatic
             $domain=idn_to_ascii($domain);
         }
         return $domain;
-    }
+    }//end punycodeDomain()
+
     
     /**
      * Takes a valid ascii domain name and returns UTF-8 variant, assuming the
@@ -38,14 +52,15 @@ class UnpluggedStatic
             $domain=idn_to_utf8($domain);
         }
         return $domain;
-    }
+    }//end unpunycodeDomain()
+
     /**
      * Takes a valid international e-mail address and return user@ punycode variant,
      * assuming idn_to_ascii is available.
      *
      * GIGO function, invalid e-mail will not throw exception.
      *
-     * @param string $domain The domain name to translate into utf8.
+     * @param string $email The e-maill address with domain name to translate into utf8.
      *
      * @return string The e-mail with ascii variant of the domain name
      */
@@ -56,7 +71,8 @@ class UnpluggedStatic
             $email=$tmp[0] . '@' . self::punycodeDomain($tmp[1]);
         }
         return $email;
-    }
+    }//end punycodeEmail()
+
     
     /**
      * Creates a nonce that is at least 16 bytes. If a smaller nonce is requested it
@@ -66,14 +82,15 @@ class UnpluggedStatic
      *
      * @return string The base64 encoded nonce.
      */
-    public static function generateNonce(int $bytes=16): string
+    public static function generateNonce(int $bytes = 16): string
     {
-        if($bytes < 16) {
+        if ($bytes < 16) {
             $bytes = 16;
         }
         $raw = random_bytes($bytes);
         return base64_encode($raw);
-    }
+    }//end generateNonce()
+
     
     /**
      * Creates a cryptographically strong 256 bit salt.
@@ -84,7 +101,8 @@ class UnpluggedStatic
     {
         $raw = random_bytes(32);
         return base64_encode($raw);
-    }
+    }//end saltShaker()
+
     
     /* Pluggable Methods */
     
@@ -102,34 +120,35 @@ class UnpluggedStatic
      * is used.
      *
      * @param string $data The string to be hashed.
-     * @param string $key  The key (salt) to be used.
+     * @param string $salt The key (salt) to be used.
      * @param null|int $bytes Optional. The length in bytes for the hash. Defaults to
      *                        SODIUM_CRYPTO_GENERICHASH_BYTES.
      *
      * @return string      The base64 encoded hash
      */
-    public static function cryptoHash(string $data, string $salt, $bytes=null): string
+    public static function cryptoHash(string $data, string $salt, $bytes = null): string
     {
-        if(is_null($bytes)) {
+        if (is_null($bytes)) {
             $bytes = SODIUM_CRYPTO_GENERICHASH_BYTES;
         }
-        if(! is_numeric($bytes)) {
+        if (! is_numeric($bytes)) {
             $bytes = SODIUM_CRYPTO_GENERICHASH_BYTES;
         }
         $bytes = (int) $bytes;
-        if($bytes > SODIUM_CRYPTO_GENERICHASH_BYTES_MAX) {
+        if ($bytes > SODIUM_CRYPTO_GENERICHASH_BYTES_MAX) {
             $bytes = SODIUM_CRYPTO_GENERICHASH_BYTES_MAX;
         }
-        if($bytes < SODIUM_CRYPTO_GENERICHASH_BYTES_MIN) {
+        if ($bytes < SODIUM_CRYPTO_GENERICHASH_BYTES_MIN) {
             $bytes = SODIUM_CRYPTO_GENERICHASH_BYTES_MIN;
         }
         // We have to do this because the WP supplied salt may not actually
         // be suitable key
         $key = hash('sha256', $salt, true);
-        $raw = sodium_crypto_generichash($data, $key, $bytes);
-        sodium_memzero($key);
+        $raw = sodium_crypto_generichash($data, $salt, $bytes);
+        sodium_memzero($salt);
         return base64_encode($raw);
-    }
+    }//end cryptoHash()
+
     
     /**
      * For use with `wp_rand()` pluggable function. Generates a random integer.
@@ -139,15 +158,16 @@ class UnpluggedStatic
      *
      * @return The random number between min and max inclusive
      */
-    public static function safeRandInt(int $min=0, int $max=0): int
+    public static function safeRandInt(int $min = 0, int $max = 0): int
     {
-        if($min > $max) {
+        if ($min > $max) {
             $tmp = $min;
             $min = $max;
             $max = $min;
         }
         return random_int($min, $max);
-    }
+    }//end safeRandInt()
+
     
     /**
      * For use with `wp_generate_password()` pluggable function. Generates a random password drawn
@@ -161,9 +181,10 @@ class UnpluggedStatic
      *
      * @return string The generated password.
      */
-     public static function generatePassword(int $length = 12, bool $special_chars = true, bool $extra_special_chars = false): string
-     {
-        if($length < 12) {
+    // @codingStandardsIgnoreLine
+    public static function generatePassword(int $length = 12, bool $special_chars = true, bool $extra_special_chars = false): string
+    {
+        if ($length < 12) {
             $length = 12;
         }
         $alphabet = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -176,20 +197,21 @@ class UnpluggedStatic
         $alphabet = str_shuffle($alphabet);
         $max = (strlen($alphabet) - 1);
         $password = '';
-        for($i=0; $i<= $length; $i++) {
+        for ($i=0; $i<= $length; $i++) {
             $rnd = self::safeRandInt(0, $max);
             $password .= $alphabet[$rnd];
         }
         return $password;
-     }
+    }//end generatePassword()
+
      
     /**
      * For use with `wp_hash_password()` pluggable function. Create a hash (encrypt)
      * of a plain text password.
      *
-     * @param string $password The plain text password
+     * @param string $password The plain text password.
      *
-     * @return string The hash of the plain text password
+     * @return string The hash of the plain text password.
      */
     public static function hashPassword(string $password): string
     {
@@ -200,15 +222,16 @@ class UnpluggedStatic
         );
         sodium_memzero($password);
         return $hash_str;
-    }
+    }//end hashPassword()
+
     
     /**
      * For use with `wp_check_password()` pluggable function. Checks plain text against encrypted.
      *
-     * @param string $password The plain text password
-     * @param string $hash     The hash to check against
+     * @param string $password The plain text password.
+     * @param string $hash     The hash to check against.
      *
-     * @return bool True on valid, False on failure
+     * @return bool True on valid, False on failure.
      */
     public static function checkPassword(string $password, string $hash): bool
     {
@@ -218,33 +241,7 @@ class UnpluggedStatic
         }
         sodium_memzero($password);
         return $return;
-    }
-     
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    }//end checkPassword()
+}//end class
 
 ?>

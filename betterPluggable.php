@@ -1,14 +1,18 @@
 <?php
+declare(strict_types=1);
 
 /**
- * Replacements for some (not all) of the WordPress pluggable.php functions
+ * Replacements for some (not all) of the WordPress pluggable.php functions.
  *
+ * @package AWonderPHP/PluggableUnplugged
+ * @author  Alice Wonder <paypal@domblogger.net>
+ * @license https://opensource.org/licenses/MIT MIT
+ * @link    https://github.com/AliceWonderMiscreations/PluggableUnplugged
  */
 
 // make sure PHP has what we need
 
 if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
-  
     require_once(__DIR__ . '/lib/UnpluggedStatic.php');
   
     use \AWonderPHP\PluggableUnplugged\UnpluggedStatic as UnpluggedStatic;
@@ -26,16 +30,16 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
     function wp_salt(string $scheme = 'auth'): string
     {
         static $cached_salts = array();
-        if(isset($cached_salts[$scheme])) {
+        if (isset($cached_salts[$scheme])) {
             return apply_filters('salt', $cached_salts[$scheme], $scheme);
         }
         
         static $duplicated_keys;
-        if(is_null($duplicated_keys)) {
+        if (is_null($duplicated_keys)) {
             $duplicated_keys = array( 'put your unique phrase here' => true );
-            foreach(array('AUTH', 'SECURE_AUTH', 'LOGGED_IN', 'NONCE', 'SECRET') as $first) {
-                foreach(array('KEY', 'SALT') as $second) {
-                    if(! defined("${first}_${second}")) {
+            foreach (array('AUTH', 'SECURE_AUTH', 'LOGGED_IN', 'NONCE', 'SECRET') as $first) {
+                foreach (array('KEY', 'SALT') as $second) {
+                    if (! defined("${first}_${second}")) {
                         continue;
                     }
                     $value = constant("{$first}_{$second}");
@@ -45,30 +49,30 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
         }
         // should these actually be initialized as null?
         $values = array('key' => '', 'salt' => '');
-        if(defined('SECRET_KEY') && SECRET_KEY && empty($duplicated_keys[SECRET_KEY])) {
+        if (defined('SECRET_KEY') && SECRET_KEY && empty($duplicated_keys[SECRET_KEY])) {
             $values['key'] = 'SECRET_KEY';
         }
-        if($scheme === 'auth' && defined('SECRET_SALT') && SECRET_SALT && empty($duplicated_keys[SECRET_SALT])) {
+        if ($scheme === 'auth' && defined('SECRET_SALT') && SECRET_SALT && empty($duplicated_keys[SECRET_SALT])) {
             $values['salt'] = 'SECRET_SALT';
         }
         
-        if(in_array($scheme, array('auth', 'secure_auth', 'logged_in', 'nonce'))) {
-            foreach(array('key', 'salt') as $type) {
-                $const = strtoupper( "{$scheme}_{$type}" );
-                if(defined($const) && constant($const) && empty($duplicated_keys[constant($const))) {
+        if (in_array($scheme, array('auth', 'secure_auth', 'logged_in', 'nonce'))) {
+            foreach (array('key', 'salt') as $type) {
+                $const = strtoupper("{$scheme}_{$type}");
+                if (defined($const) && constant($const) && empty($duplicated_keys[constant($const))) {
                     $values[$type] = constant($const);
-                } elseif(! $values[$type]) {
+                } elseif (! $values[$type]) {
                     $values[$type] = get_site_option("{$scheme}_{$type}");
-                    if(! $values[$type]) {
+                    if (! $values[$type]) {
                         $values[$type] = UnpluggedStatic::saltShaker();
                         update_site_option("{$scheme}_{$type}", $values[$type]);
                     }
                 }
             }
         } else {
-            if(! $values['key']) {
+            if (! $values['key']) {
                 $values['key'] = get_site_option('secret_key');
-                if(! $values['key']) {
+                if (! $values['key']) {
                     $values['key'] = UnpluggedStatic::saltShaker();
                     update_site_option('secret_key', $values['key']);
                 }
@@ -84,21 +88,24 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
         // I am unsure what benefit there is to allowing filters on a salt,
         //  does it pose more danger than it is worth?
         return apply_filters('salt', $cached_salts[$scheme], $scheme);
-    }
+    }//end wp_salt()
+
     
     /**
      * Generates a secure hash of a specified string using the salt associated
-     * with a specified scheme
+     * with a specified scheme.
      *
-     * @param string $data   Plain text to hash
-     * @param string $scheme Authentication scheme (auth, secure_auth, logged_in, nonce)
+     * @param string $data   Plain text to hash.
+     * @param string $scheme Authentication scheme (auth, secure_auth, logged_in, nonce).
      *
-     * @return string Hash of $data
+     * @return string Hash of $data.
      */
-    function wp_hash(string $data, $scheme = 'auth') {
+    function wp_hash(string $data, $scheme = 'auth')
+    {
         $salt = wp_salt($scheme);
         return UnpluggedStatic::cryptoHash($data, $salt, 16);
-    }
+    }//end wp_hash()
+
     
     /**
      * Get the time-dependent variable for nonce creation.
@@ -115,9 +122,10 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
     function wp_nonce_tick(): int
     {
         $nonce_life = apply_filters('nonce_life', 10800);
-        $return = ceil( time() / ( $nonce_life / 2 ) );
+        $return = ceil(time() / ( $nonce_life / 2 ));
         return intval($return, 10);
-    }
+    }//end wp_nonce_tick()
+
 
     /**
      * Creates a cryptographic token tied to a specific action, user, user session,
@@ -136,15 +144,16 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
         $user = wp_get_current_user();
         // check to see if we really need to recast
         $uid  = (int) $user->ID;
-        if ( ! $uid ) {
+        if (! $uid) {
             /** This filter is documented in wp-includes/pluggable.php */
-            $uid = apply_filters( 'nonce_user_logged_out', $uid, $action );
+            $uid = apply_filters('nonce_user_logged_out', $uid, $action);
         }
         $token = wp_get_session_token();
         $i = wp_nonce_tick();
         $str = $i . '|' . $action . '|' . $uid . '|' . $token;
         return wp_hash($str, 'nonce');
-    }
+    }//end wp_create_nonce()
+
     
     /**
      * Verifies the correct nonce was used and has not expired.
@@ -158,20 +167,20 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
     {
         $user = wp_get_current_user();
         $uid  = (int) $user->ID;
-        if ( ! $uid ) {
+        if (! $uid) {
             $uid = apply_filters('nonce_user_logged_out', $uid, $action);
         }
         $token = wp_get_session_token();
         $i = wp_nonce_tick();
         $str = $i . '|' . $action . '|' . $uid . '|' . $token;
         $expected = wp_hash($str, 'nonce');
-        if(hash_equals($expected, $nonce)) {
+        if (hash_equals($expected, $nonce)) {
             return 1;
         }
         $i--;
         $str = $i . '|' . $action . '|' . $uid . '|' . $token;
         $expected = wp_hash($str, 'nonce');
-        if(hash_equals($expected, $nonce)) {
+        if (hash_equals($expected, $nonce)) {
             return 2;
         }
         /**
@@ -182,9 +191,10 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
          * @param WP_User    $user   The current user object.
          * @param string     $token  The user's session token.
          */
-        do_action( 'wp_verify_nonce_failed', $nonce, $action, $user, $token );
+        do_action('wp_verify_nonce_failed', $nonce, $action, $user, $token);
         return false;
-    }
+    }//end wp_verify_nonce()
+
     
     // BETTER nonce functions for CSRF but would break some plugins
     // if I did these as default
@@ -203,7 +213,7 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
     {
         $user = wp_get_current_user();
         $action = trim(strtolower($action));
-        if(strlen($action) === 0) {
+        if (strlen($action) === 0) {
             $action = 'generic';
         }
         $nonce_type = $action . '_nonces';
@@ -216,7 +226,8 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
         $expires = time() + $ttl;
         $wp_session[$nonce_type][$nonce] = $expires;
         return $nonce;
-    }
+    }//end awm_create_nonce()
+
     
     /**
      * Validate that a particular nonce is valid, and invalidate it after
@@ -231,7 +242,7 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
     {
         $user = wp_get_current_user();
         $action = trim(strtolower($action));
-        if(strlen($action) === 0) {
+        if (strlen($action) === 0) {
             $action = 'generic';
         }
         $nonce_type = $action . '_nonces';
@@ -244,7 +255,7 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
         if (! isset($wp_session[$nonce_type][$nonce])) {
             return false;
         }
-        if(! is_numeric($wp_session[$nonce_type][$nonce])) {
+        if (! is_numeric($wp_session[$nonce_type][$nonce])) {
             return false;
         }
         $expires = intval($wp_session[$nonce_type][$nonce], 10);
@@ -253,15 +264,16 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
         }
         $wp_session[$nonce_type][$nonce] = 0;
         return true;
-    }
+    }//end awm_verify_nonce()
+
 
     /* Password Functions */
 
     /**
      * Updates user password with new hash.
      *
-     * @param string $password The plain text password
-     * @param int    $user_id  User ID
+     * @param string $password The plain text password.
+     * @param int    $user_id  User ID.
      *
      * @return void
      */
@@ -277,7 +289,8 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
             , array( 'ID' => $user_id )
         );
         wp_cache_delete($user_id, 'users');
-    }
+    }//end wp_set_password()
+
 
     /**
      * Create a hash of a plain text password using sodium.
@@ -286,15 +299,17 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
      * which takes $password as an argument. That is dangerous, so this function
      * does not use that filter.
      *
-     * @input string $password The password to hash
+     * @param string $password The password to hash.
      *
      * @return string The hashed password
      */
-    function wp_hash_password($password) {
+    function wp_hash_password($password)
+    {
         $hash = UnpluggedStatic::hashPassword($password);
         sodium_memzero($password);
         return $hash;
-    }
+    }//end wp_hash_password()
+
 
     /**
      * Checks the plain text password against the hashed password, updating old
@@ -304,9 +319,9 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
      * which takes $password as an argument. That is dangerous, so this function
      * does not use that filter.
      *
-     * @param string     $password The password to be checked
-     * @param string     $hash     The hash to be checked
-     * @param null|int   $user_id  Optional. The user id to match against
+     * @param string     $password The password to be checked.
+     * @param string     $hash     The hash to be checked.
+     * @param null|int   $user_id  Optional. The user id to match against.
      *
      * @return bool True on success, False on failure.
      */
@@ -315,12 +330,12 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
         global $wp_hasher;
     
         // Insane if md5 still being used...
-        if(ctype_xdigit($hash)) {
-            if(strlen($hash) === 32) {
+        if (ctype_xdigit($hash)) {
+            if (strlen($hash) === 32) {
                 //assume md5sum
                 $check = hash_equals($hash, md5($password));
                 if ($check) {
-                    if(is_int($user_id)) {
+                    if (is_int($user_id)) {
                         wp_set_password($password, $user_id);
                     }
                 }
@@ -329,15 +344,15 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
             }
         }
         $str = substr($hash, 0, 12);
-        if($str !== '$argon2id$v=') {
+        if ($str !== '$argon2id$v=') {
             // doing things the old way, eh?
             if (empty($wp_hasher)) {
-                require_once( ABSPATH . WPINC . '/class-phpass.php' );
+                require_once(ABSPATH . WPINC . '/class-phpass.php');
                 $wp_hasher = new \PasswordHash(8, true);
             }
             $check = $wp_hasher->CheckPassword($password, $hash);
             if ($check) {
-                if(is_int($user_id)) {
+                if (is_int($user_id)) {
                     wp_set_password($password, $user_id);
                 }
             }
@@ -347,17 +362,18 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
         // doing things the right way
         $check = UnpluggedStatic::checkPassword($password, $hash);
         if ($check) {
-            if(is_int($user_id)) {
+            if (is_int($user_id)) {
                 // 20% of time this will recreate the hash
                 $random = UnpluggedStatic::safeRandInt(0, 4);
-                if($random === 3) {
+                if ($random === 3) {
                     wp_set_password($password, $user_id);
                 }
             }
         }
         sodium_memzero($password);
         return $check;
-    }
+    }//end wp_check_password()
+
 
     /**
      * Generates a random password from defined characters
@@ -370,12 +386,13 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
      *
      * @return string The generated password.
      */
-
-    function wp_generate_password(int $length = 12, bool $special_chars = true; bool $extra_special_chars = false): string
+    // @codingStandardsIgnoreLine
+    function wp_generate_password(int $length = 12, bool $special_chars = true, bool $extra_special_chars = false): string
     {
         $password = UnpluggedStatic::generatePassword($length, $special_chars, $extra_special_chars);
         return $password;
-    }
+    }//end wp_generate_password()
+
     
     /* Misc function */
     
@@ -387,10 +404,11 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
      *
      * @return int A random number between the two parameters.
      */
-    function wp_rand(int $min=0, int $max=0): int
+    function wp_rand(int $min = 0, int $max = 0): int
     {
         return UnpluggedStatic::safeRandInt($min, $max);
-    }
+    }//end wp_rand()
+
 }
 
 ?>
