@@ -60,8 +60,8 @@ The WordPress functions for creating non-password related hashes use the PHP
 `md5` as the algorithm.
 
 There is no good reason to continue using `md5`,
-[md5 is broken](https://en.wikipedia.org/wiki/MD5) and there really is not a
-justifiable reason to keep using it.
+[md5 is broken](https://en.wikipedia.org/wiki/MD5#Security) and there really is
+not a justifiable reason to keep using it.
 
 The `wp_hash()` function is replaced by one that uses
 `sodium_crypto_generichash()` instead. That is a secure alternative to
@@ -106,10 +106,17 @@ full 128 bits is used for the nonce, not just 80 bits of it.
 Additionally I shortened the tick time in `wp_nonce_tick()` to give the nonce
 a valid lifetime of up to only three hours instead of up to twenty-four hours.
 
+In the `bin/` directory is a PHP shell script called
+[`mksalts.php`](bin/mksalts.php) that will generate suitable salts you can copy
+and paste into your `wp-config.php` file that are quality generated salts. It
+is a good idea to change those salts every now and then in case they have been
+compromised by a bug in the platform or a plugin.
+
 However the nonce can still potentially be predicted by an attacker who is able
 to get a few pieces of information that can potentially be leaked by bugs in
 the platform or bugs in various plugins. No randomness exists in the generation
-of a nonce.
+of a WordPress nonce other than what is in the static salts and the user
+session token, both of which can potentially be discovered by an exploit.
 
 To compensate, two new functions have been added:
 
