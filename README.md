@@ -11,8 +11,10 @@ Very alpha still.
 
 __YOU HAVE BEEN WARNED__
 
-Now, ignore my warning and use on heavy production sites so I can bug reports.
-I can filter out the cursing that will accompany them.
+Now, ignore my warning and use on heavy production sites so I can have the bug
+reports. I can filter out the cursing that will accompany them.
+
+---------------------------------------------------
 
 The purpose of this plugin is to improve how some of the WordPress
 `pluggable.php` functions do their thing on hosts that are both running PHP 7
@@ -157,4 +159,5 @@ TO BE CONTINUED
 
 
 
-
+---------------------------------------------------
+__EOF__
