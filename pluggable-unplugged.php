@@ -25,6 +25,7 @@ use \AWonderPHP\PluggableUnplugged\UnpluggedStatic as UnpluggedStatic;
 if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
     /* hash, salt, and nonce functions */
     
+    if (! function_exists('wp_salt')) :
     /**
      * Get a salt associated with a specific scheme, setting the salt
      * if need be.
@@ -95,8 +96,9 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
         //  does it pose more danger than it is worth?
         return apply_filters('salt', $cached_salts[$scheme], $scheme);
     }//end wp_salt()
-
+    endif;
     
+    if (! function_exists('wp_hash')) :
     /**
      * Generates a secure hash of a specified string using the salt associated
      * with a specified scheme.
@@ -111,8 +113,9 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
         $salt = wp_salt($scheme);
         return UnpluggedStatic::cryptoHash($data, $salt, 16);
     }//end wp_hash()
-
+    endif;
     
+    if (! function_exists('wp_nonce_tick')) :
     /**
      * Get the time-dependent variable for nonce creation.
      *
@@ -131,8 +134,9 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
         $return = ceil(time() / ( $nonce_life / 2 ));
         return intval($return, 10);
     }//end wp_nonce_tick()
-
-
+    endif;
+    
+    if (! function_exists('wp_create_nonce')) :
     /**
      * Creates a cryptographic token tied to a specific action, user, user session,
      * and window of time.
@@ -157,10 +161,14 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
         $token = wp_get_session_token();
         $i = wp_nonce_tick();
         $str = $i . '|' . $action . '|' . $uid . '|' . $token;
-        return wp_hash($str, 'nonce');
+        $prenonce = wp_hash($str, 'nonce');
+        // effing WordPress sometimes puts the nonce in GET variables
+        $nonce = preg_replace('/[^A-Za-z0-9]/', '', $prenonce);
+        return $nonce;
     }//end wp_create_nonce()
-
+    endif;
     
+    if (! function_exists('wp_verify_nonce')) :
     /**
      * Verifies the correct nonce was used and has not expired.
      *
@@ -179,13 +187,15 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
         $token = wp_get_session_token();
         $i = wp_nonce_tick();
         $str = $i . '|' . $action . '|' . $uid . '|' . $token;
-        $expected = wp_hash($str, 'nonce');
+        $prenonce = wp_hash($str, 'nonce');
+        $expected = preg_replace('/[^A-Za-z0-9]/', '', $prenonce);
         if (hash_equals($expected, $nonce)) {
             return 1;
         }
         $i--;
         $str = $i . '|' . $action . '|' . $uid . '|' . $token;
-        $expected = wp_hash($str, 'nonce');
+        $prenonce = wp_hash($str, 'nonce');
+        $expected = preg_replace('/[^A-Za-z0-9]/', '', $prenonce);
         if (hash_equals($expected, $nonce)) {
             return 2;
         }
@@ -200,7 +210,7 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
         do_action('wp_verify_nonce_failed', $nonce, $action, $user, $token);
         return false;
     }//end wp_verify_nonce()
-
+    endif;
     
     // BETTER nonce functions for CSRF but would break some plugins
     // if I did these as default
@@ -275,6 +285,7 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
 
     /* Password Functions */
 
+    if (! function_exists('wp_set_password')) :
     /**
      * Updates user password with new hash.
      *
@@ -292,12 +303,13 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
             $wpdb->users, array(
                 'user_pass'           => $hash,
                 'user_activation_key' => '',
-            , array( 'ID' => $user_id )
+            ), array( 'ID' => $user_id )
         );
         wp_cache_delete($user_id, 'users');
     }//end wp_set_password()
-
-
+    endif;
+    
+    if (! function_exists('wp_hash_password')) :
     /**
      * Create a hash of a plain text password using sodium.
      *
@@ -315,8 +327,9 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
         sodium_memzero($password);
         return $hash;
     }//end wp_hash_password()
-
-
+    endif;
+    
+    if (! function_exists('wp_check_password')) :
     /**
      * Checks the plain text password against the hashed password, updating old
      * versions of the hashing algorithm if necessary to argon2id.
@@ -379,8 +392,9 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
         sodium_memzero($password);
         return $check;
     }//end wp_check_password()
-
-
+    endif;
+    
+    if (! function_exists('wp_generate_password')) :
     /**
      * Generates a random password from defined characters
      *
@@ -398,10 +412,11 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
         $password = UnpluggedStatic::generatePassword($length, $special_chars, $extra_special_chars);
         return $password;
     }//end wp_generate_password()
+    endif;
 
-    
     /* Misc function */
     
+    if (! function_exists('wp_rand')) :
     /**
      * Generates a random number.
      *
@@ -414,7 +429,7 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
     {
         return UnpluggedStatic::safeRandInt($min, $max);
     }//end wp_rand()
-
+    endif;
 }
 
 ?>

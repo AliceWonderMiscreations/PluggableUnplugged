@@ -140,7 +140,7 @@ class UnpluggedStatic
         // We have to do this because the WP supplied salt may not actually
         // be suitable key
         $key = hash('sha256', $salt, true);
-        $raw = sodium_crypto_generichash($data, $salt, $bytes);
+        $raw = sodium_crypto_generichash($data, $key, $bytes);
         sodium_memzero($salt);
         return base64_encode($raw);
     }//end cryptoHash()
