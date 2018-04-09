@@ -1,7 +1,18 @@
 PluggableUnplugged
 ==================
 
-This plugin is not yet installable.
+This plugin installs but is not fully tested, as in, use at your own risk.
+
+If you install, all password hashes will be updated to argon2id which means
+removing the plugin will result in an inability to log in, you'll have to do a
+password reset after removing / de-activating the plugin.
+
+Very alpha still.
+
+__YOU HAVE BEEN WARNED__
+
+Now, ignore my warning and use on heavy production sites so I can bug reports.
+I can filter out the cursing that will accompany them.
 
 The purpose of this plugin is to improve how some of the WordPress
 `pluggable.php` functions do their thing on hosts that are both running PHP 7
