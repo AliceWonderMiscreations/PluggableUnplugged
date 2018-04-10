@@ -152,8 +152,28 @@ AJAX processing should generate a new nonce that is returned with the response
 as the nonce sent with the form submission will be invalidated once used.
 
 
+Gravatar Related
+----------------
+
+Gravatar is a huge privacy leak. It results in an unsalted hash of the user
+e-mail address being published on the web page. This makes it trivial for
+hackers and others to create tables of e-mail addresses they are interested in
+and search the web for blogs that e-mail address has posted to.
+
+This class obfuscates the e-mail hash using a pair of salts that are custom to
+to the blog so that when someone comments on the blog, the avatar will not
+include an unsalted hash of their e-mail address and will in fact be different
+from a hash where the same e-mail address was used to comment on a different
+blog.
+
+
 TO BE CONTINUED
 ===============
+
+I still need to write unit tests and an admin interface so that the blog admin
+can decide whether or not they want `argon2id` password hashing and whether or
+not they want to add any domains or e-mail addresses to a white list of what
+does *not* get obfuscated when making a gravatar hash.
 
 
 
