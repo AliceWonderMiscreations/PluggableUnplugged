@@ -35,7 +35,6 @@ class UnpluggedStatic
         return $domain;
     }//end punycodeDomain()
 
-    
     /**
      * Takes a valid ascii domain name and returns UTF-8 variant, assuming the
      * idn_to_utf8 function is available.
@@ -72,7 +71,6 @@ class UnpluggedStatic
         }
         return $email;
     }//end punycodeEmail()
-
     
     /**
      * Creates a nonce that is at least 16 bytes. If a smaller nonce is requested it
@@ -90,8 +88,73 @@ class UnpluggedStatic
         $raw = random_bytes($bytes);
         return base64_encode($raw);
     }//end generateNonce()
-
     
+    /**
+     * A substitute for the WordPress add_query_arg function.
+     * This function does NOT support user, pass, or fragment.
+     *
+     * @param string      $url              The url to modify.
+     * @param array       $addQueryArgs     Optional. An array of key value pairs.
+     * @param array       $removeQueryArgs  Optional. An array of query args to remove from $url, only key matters.
+     * @param null|string $scheme           Optional. The scheme to use. Only supports http or https.
+     *
+     * @return null|string The url with query args added, or null on failure.
+     */
+    public static function modifyQueryArgs(string $url, array $addQueryArgs = array(), array $removeQueryArgs = array(), $scheme = null)
+    {
+        $parsed = parse_url($url);
+        if (! is_null($scheme)) {
+            $scheme = strtolower($scheme);
+            if (in_array($scheme, array('http', 'https'))) {
+                $parsed['scheme'] = $scheme;
+            }
+        }
+        // todo - throw exception when host is missing
+        
+        if (isset($parsed['query'])) {
+            $queryArray = explode('&', $parsed['query']);
+        } else {
+            $queryArray = array();
+        }
+        $newQueryArray = array();
+        foreach ($queryArray as $key => $value) {
+            if (! in_array($key, $removeQueryArgs)) {
+                $newQueryArray[] = $key . '=' . $value;
+            }
+        }
+        
+        foreach ($addQueryArgs as $key => $value) {
+            if (! is_bool($value)) {
+                $newQueryArray[] = $key . '=' . $value;
+            }
+        }
+        if (count($newQueryArray) > 0) {
+            $parsed['query'] = implode('&', $newQueryArray);
+        }
+        $url = '';
+        $realurl = '';
+        if (isset($parsed['scheme'])) {
+            $url = $parsed['scheme'] . '://';
+            $realurl = $parsed['scheme'] . '://';
+        }
+        $url = $url . self::punycodeDomain($parsed['host']);
+        $realurl = $realurl . $parsed['host'];
+        if (isset($parsed['port'])) {
+            $url = $url . ':' . $parsed['port'];
+            $realurl = $realurl . ':' . $parsed['port'];
+        }
+        $url = $url . $parsed['path'];
+        $realurl = $url . $parsed['path'];
+        if (count($newQueryArray) > 0) {
+            $url = $url . '?' . $parsed['query'];
+            $realurl = $realurl . '?' . $parsed['query'];
+        }
+        if ($test = filter_var($url, FILTER_VALIDATE_URL)) {
+            return $realurl;
+        }
+        return null;
+    }//end modifyQueryArgs()
+
     /**
      * Creates a cryptographically strong 256 bit salt.
      *
@@ -103,7 +166,6 @@ class UnpluggedStatic
         return base64_encode($raw);
     }//end saltShaker()
 
-    
     /* Pluggable Methods */
     
     /**
@@ -145,7 +207,6 @@ class UnpluggedStatic
         return base64_encode($raw);
     }//end cryptoHash()
 
-    
     /**
      * For use with `wp_rand()` pluggable function. Generates a random integer.
      *
@@ -164,12 +225,11 @@ class UnpluggedStatic
         return random_int($min, $max);
     }//end safeRandInt()
 
-    
     /**
      * For use with `wp_generate_password()` pluggable function. Generates a random password drawn
      * from the defined set of characters. Always generates a password at least 12 characters long.
      *
-     * @param int  $length              Optional. The length of the password.
+     * @param int  $length              Optional. The length of the password. Defaults to 16.
      * @param bool $special_chars       Optional. Whether to include standard special characters.
      *                                  Default True.
      * @param bool $extra_special_chars Optional. Whether to include other special characters.
@@ -178,7 +238,7 @@ class UnpluggedStatic
      * @return string The generated password.
      */
     // @codingStandardsIgnoreLine
-    public static function generatePassword(int $length = 12, bool $special_chars = true, bool $extra_special_chars = false): string
+    public static function generatePassword(int $length = 16, bool $special_chars = true, bool $extra_special_chars = false): string
     {
         if ($length < 12) {
             $length = 12;
@@ -200,7 +260,6 @@ class UnpluggedStatic
         return $password;
     }//end generatePassword()
 
-     
     /**
      * For use with `wp_hash_password()` pluggable function. Create a hash (encrypt)
      * of a plain text password.
@@ -220,7 +279,6 @@ class UnpluggedStatic
         return $hash_str;
     }//end hashPassword()
 
-    
     /**
      * For use with `wp_check_password()` pluggable function. Checks plain text against encrypted.
      *

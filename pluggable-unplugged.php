@@ -18,7 +18,11 @@ declare(strict_types=1);
  */
 
 require_once(__DIR__ . '/lib/UnpluggedStatic.php');
+require_once(__DIR__ . '/lib/Groovytar.php');
+require_once(__DIR__ . '/lib/WordPressGroovytar.php');
+
 use \AWonderPHP\PluggableUnplugged\UnpluggedStatic as UnpluggedStatic;
+use \AWonderPHP\PluggableUnplugged\WordPressGroovytar as Groovytar;
 
 // make sure PHP has what we need
 
@@ -429,6 +433,130 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
     {
         return UnpluggedStatic::safeRandInt($min, $max);
     }//end wp_rand()
+    endif;
+    
+    /* Gravatar functions */
+    /**
+     * Creates a footer informing the user their privacy is protected
+     *
+     * @return void
+     */
+    function groovytarFooter(): void
+    {
+        // @codingStandardsIgnoreLine
+        echo('<div style="text-align: center;">' . __('Anonymity protected with') . ' <a href="https://wordpress.org/plugins/awm-pluggable-unplugged/" target="_blank">AWM Pluggable Unplugged</a></div>');
+        return;
+    }
+    
+    if (! function_exists('get_avatar')) :
+    /**
+     * Replacement for the pluggable.php get_avatar function.
+     *
+     * @param mixed      $id_or_email The e-mail address to generate an avatar for or
+     *                                possibly an object we can use to fetch the e-mail.
+     * @param int        $size        Optional. The size of the avatar in pixels. Defaults to 96.
+     * @param string     $default     Optional. The default type of avatar to use. Defaults to
+     *                                system setting or 'monsterid'.
+     * @param string     $alt         Optional. The img alt tag to use.
+     * @param null|array $args        Optional. Array of argument that impact creation of img node
+     *
+     * @return string The img tag to use.
+     */
+    function get_avatar($id_or_email, $size = 96, $default = '', $alt = '', $args = null): string
+    {
+        /* Gravatar Obfuscation */
+        $groovytar = new Groovytar($salts);
+        if (! $whitedomains=get_option('groovytarDomains')) {
+            $whitedomains=array();
+        }
+        foreach($whitedomains as $input) {
+            try {
+                $groovytar->addDomain($input);
+            } catch(\InvalidArgumentException $e) {
+                error_log($e->getMessage());
+            }
+        }
+        if (! $whiteaddresses=get_option('groovytarAddresses')) {
+            $whiteaddresses=array();
+        }
+        foreach($whiteaddresses as $input) {
+            try {
+                $groovytar->addEmailAddress($input);
+            } catch(\InvalidArgumentException $e) {
+                error_log($e->getMessage());
+            }
+        }
+        
+        if(is_null($args)) {
+            $args = array();
+        }
+        $args['size']    = (int) $size;
+        $args['default'] = $default;
+        $args['alt']     = $alt;
+        if(! isset($args['default'])) {
+            $args['default'] = get_option('avatar_default', 'monsterid');
+        }
+        if (empty($args['default'])) {
+            $args['default'] = get_option('avatar_default', 'monsterid');
+        }
+        if(! isset($args['force_default'])) {
+            $args['force_default'] = false;
+        }
+        $args['force_default'] = (bool) $args['force_default'];
+        if(! isset($args['rating'])) {
+            $args['rating'] = 'g';
+            $args['rating'] = strtolower($args['rating']);
+        }
+        if(! isset($args['scheme'])) {
+            $args['scheme'] = null;
+        }
+        if(! isset($args['class'])) {
+            $args['class'] = null;
+        }
+        if(! isset($args['force_display'])) {
+            $args['force_display'] = false;
+        }
+        $args['force_display'] = (bool) $args['force_display'];
+        if(! isset($args['extra_attr'])) {
+            $args['extra_attr'] = '';
+        }
+        
+        // TODO?? - pre_get
+        
+        if (! $args['force_display'] && ! get_option('show_avatars')) {
+            return false;
+        }
+        $url2x = $groovytar->getAvatarUrl($id_or_email, array_merge($args, array( 'size' => $args['size'] * 2 )));
+        $args = $groovytar->getAvatarData($id_or_email, $args);
+        $url = $args['url'];
+        if (! $url || is_wp_error($url)) {
+            var_dump($args);
+            return false;
+        }
+        
+        $class = array( 'avatar', 'avatar-' . (int) $args['size'], 'photo' );
+        if (! $args['found_avatar'] || $args['force_default']) {
+            $class[] = 'avatar-default';
+        }
+        if ($args['class']) {
+            if (is_array($args['class'])) {
+                $class = array_merge($class, $args['class']);
+            } else {
+                $class[] = $args['class'];
+            }
+        }
+        $avatar = sprintf(
+            "<img alt='%s' src='%s' srcset='%s' class='%s' height='%d' width='%d' %s/>",
+            esc_attr($args['alt']),
+            esc_url($url),
+            esc_url($url2x) . ' 2x',
+            esc_attr(join(' ', $class)),
+            (int) $args['height'],
+            (int) $args['width'],
+            $args['extra_attr']
+        );
+        return $avatar;
+    }
     endif;
 }
 
