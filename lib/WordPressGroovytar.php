@@ -35,7 +35,7 @@ class WordPressGroovytar extends \AWonderPHP\PluggableUnplugged\Groovytar
         
         // TODO - research the get_comment function
         if (is_object($id_or_email) && isset($id_or_email->comment_ID)) {
-            if(isset($id_or_email->comment_author_email)) {
+            if (isset($id_or_email->comment_author_email)) {
                 $email = $id_or_email->comment_author_email;
             } else {
                 $id_or_email = get_comment($id_or_email);
@@ -60,6 +60,7 @@ class WordPressGroovytar extends \AWonderPHP\PluggableUnplugged\Groovytar
              * @param array $types An array of content types. Default only contains 'comment'.
              */
             $allowed_comment_types = apply_filters('get_avatar_comment_types', array( 'comment' ));
+            // @codingStandardsIgnoreLine
             if (! empty($id_or_email->comment_type) && ! in_array($id_or_email->comment_type, (array) $allowed_comment_types)) {
                 return 'user@example.org';
             }

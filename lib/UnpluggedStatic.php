@@ -100,6 +100,7 @@ class UnpluggedStatic
      *
      * @return null|string The url with query args added, or null on failure.
      */
+    // @codingStandardsIgnoreLine
     public static function modifyQueryArgs(string $url, array $addQueryArgs = array(), array $removeQueryArgs = array(), $scheme = null)
     {
         $parsed = parse_url($url);
@@ -117,19 +118,26 @@ class UnpluggedStatic
             $queryArray = array();
         }
         $newQueryArray = array();
-        foreach ($queryArray as $key => $value) {
+        foreach ($queryArray as $string) {
+            $keypair = explode('=', $string);
+            $key = $keypair[0];
+            $value = $keypair[1];
             if (! in_array($key, $removeQueryArgs)) {
-                $newQueryArray[] = $key . '=' . $value;
+                $newQueryArray[$key] = $value;
             }
         }
         
         foreach ($addQueryArgs as $key => $value) {
             if (! is_bool($value)) {
-                $newQueryArray[] = $key . '=' . $value;
+                $newQueryArray[$key] = $value;
             }
         }
         if (count($newQueryArray) > 0) {
-            $parsed['query'] = implode('&', $newQueryArray);
+            $arr = array();
+            foreach($newQueryArray as $key => $value) {
+                $arr[] = $key . '=' . $value;
+            }
+            $parsed['query'] = implode('&', $arr);
         }
         $url = '';
         $realurl = '';
@@ -143,8 +151,11 @@ class UnpluggedStatic
             $url = $url . ':' . $parsed['port'];
             $realurl = $realurl . ':' . $parsed['port'];
         }
+        if(! isset($parsed['path'])) {
+            $parsed['path'] = '/';
+        }
         $url = $url . $parsed['path'];
-        $realurl = $url . $parsed['path'];
+        $realurl = $realurl . $parsed['path'];
         if (count($newQueryArray) > 0) {
             $url = $url . '?' . $parsed['query'];
             $realurl = $realurl . '?' . $parsed['query'];

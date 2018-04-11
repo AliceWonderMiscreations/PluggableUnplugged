@@ -406,7 +406,6 @@ abstract class Groovytar
             $email_hash = $this->mimicHash($email);
             $args['found_avatar'] = true;
         }
-        // do we really need this ???
         $url_args = array(
                 's' => $args['size'],
                 'd' => $args['default'],

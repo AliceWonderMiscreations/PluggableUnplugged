@@ -21,7 +21,9 @@ namespace AWonderPHP\PluggableUnplugged;
 class InvalidArgumentException extends \InvalidArgumentException
 {
     /**
-     * Exception message for an invalid domain
+     * Exception message for an invalid domain.
+     *
+     * @param string $str The invalid domain name.
      *
      * @return \InvalidArgumentException
      */
@@ -31,10 +33,13 @@ class InvalidArgumentException extends \InvalidArgumentException
             'The supplied domain <code>%s</code> is not a valid domain name.',
             $str
         ));
-    }
+    }//end invalidDomain()
+
     
     /**
-     * Exception message for an invalid email
+     * Exception message for an invalid email.
+     *
+     * @param string $str The invalid e-mail address.
      *
      * @return \InvalidArgumentException
      */
@@ -44,34 +49,7 @@ class InvalidArgumentException extends \InvalidArgumentException
             'The supplied e-mail address <code>%s</code> is not a valid e-mail address.',
             $str
         ));
-    }
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    }//end invalidEmail()
+}//end class
 
 ?>

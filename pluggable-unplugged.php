@@ -530,7 +530,6 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
         $args = $groovytar->getAvatarData($id_or_email, $args);
         $url = $args['url'];
         if (! $url || is_wp_error($url)) {
-            var_dump($args);
             return false;
         }
         
