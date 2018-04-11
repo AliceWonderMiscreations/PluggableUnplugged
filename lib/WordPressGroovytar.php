@@ -72,7 +72,7 @@ class WordPressGroovytar extends \AWonderPHP\PluggableUnplugged\Groovytar
             }
         }
         if (is_null($email)) {
-            if ($user) {
+            if ($user !== false) {
                 $email = $user->user_email;
             }
         }
