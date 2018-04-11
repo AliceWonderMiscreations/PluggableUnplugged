@@ -231,7 +231,7 @@ class UnpluggedStatic
         if ($min > $max) {
             $tmp = $min;
             $min = $max;
-            $max = $min;
+            $max = $tmp;
         }
         return random_int($min, $max);
     }//end safeRandInt()
