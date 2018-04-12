@@ -215,6 +215,7 @@ class UnpluggedStatic
         $key = hash('sha256', $salt, true);
         $raw = sodium_crypto_generichash($data, $key, $bytes);
         sodium_memzero($salt);
+        sodium_memzero($key);
         return base64_encode($raw);
     }//end cryptoHash()
 
