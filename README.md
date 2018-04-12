@@ -43,6 +43,7 @@ are not being logged by a third party.
 
 To run the script:
 
+    cd /path/to/wordpress/wp-content/plugins/awm-pluggable-unplugged/bin/
     php mksalts.php
 
 That will produce output similar to the following:
@@ -141,10 +142,10 @@ encoded instead of hex encoded, and the only characters removed are the `+`
 and `/` characters, which are removed because WordPress often uses the token in
 `GET` variables rather than always using `POST`.
 
-Finally, the life of a token is reduced to three hours maximum, with a new
+Finally, the life of a token is reduced to a three hours maximum, with a new
 token generated every 90 minutes.
 
-For those writing WordPress plugins who want an actual nonce instead of the
+For those writing WordPress plugins who want an *actual nonce* instead of the
 less secure token that WordPress calls a nonce, this plugin provides two
 non-standard functions you can use:
 
@@ -154,9 +155,9 @@ non-standard functions you can use:
   nonce so that it can be included as a hidden input in a generated form.
 
 * `awm_verify_nonce(string $nonce, string $action = 'generic'): bool`  
-  This function verifies that specified nonce has been stored in the user's
+  This function verifies that the specified nonce has been stored in the user's
   session data associated with the specified `$action` and then invalidates
-  it from validating in the future, as it has been used. It return `true`
+  it from validating in the future, as it has been used. It returns `true`
   when it is fed a nonce that validates, and `false` when it is fed a nonce
   that does not validate.
 
@@ -169,8 +170,9 @@ Blog Comment Avatars with Privacy
 ---------------------------------
 
 By default, WordPress uses an avatar system owned by
-[Automattic](https://automattic.com/) called Gravatar. The Gravatar leaks
-information about people who post comments on your blog and in a very bad way.
+[Automattic](https://automattic.com/) called Gravatar. The Gravatar system
+leaks information about people who post comments on your blog and in a very bad
+way.
 
 What it does, it uses a plain unsalted `md5` hash of the person's private
 e-mail address to reference the Avatar image that is used. This is done whether
@@ -203,9 +205,9 @@ use tracking cookies will be set up. This planned service will serve SVG
 avatars *except* when the user has uploaded their own.
 
 When a user writes a comment on a blog, the user will have an option to check
-a box indicating they want the avatar at that block to be tied to the avatar
+a box indicating they want the avatar at that blog to be tied to the avatar
 they have uploaded to the alternate service. That hash will still be unique to
-that blog, but the block will send an anonymized identifier that allows us to
+that blog, but the blog will send an anonymized identifier that allows us to
 serve the user's desired image in response to that specific hash.
 
 The system will be both opt-in and opt-out with the user having complete
