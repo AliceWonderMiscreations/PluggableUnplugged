@@ -3,9 +3,22 @@ PluggableUnplugged
 
 This plugin installs but is not fully tested, as in, use at your own risk.
 
-The is the github readme, intended primarily for developers. Non-developers are
-of course free to read this, but *may* be better served by the readme that is
-not yet written but will accompany the actual plugin.
+This plugin definitely works with the PHP 7.1.x branch, *probably* works with
+the PHP 7.2.x branch, and *likely* works with the PHP 7.0.0 branch, though I
+encourage PHP 7.0.0 users to upgrade to at least 7.1.x.
+
+This plugin does not work with PHP 5.6.x or earlier, and users of PHP 5.6.x or
+earlier really should upgrade, your PHP install is slow and out of date.
+
+This plugin also requires the PHP
+[libsodium](https://pecl.php.net/package/libsodium) extension. That extension
+is built by default starting with PHP 7.2 but it must be installed separately
+for either earlier versions of PHP or with PHP 7.2.x where it was specifically
+not built when PHP was compiled.
+
+This is the github readme, intended primarily for developers. Non-developers
+are of course free to read this, but *may* be better served by the readme that
+is not yet written but will accompany the actual plugin.
 
 This plugin does four things:
 
