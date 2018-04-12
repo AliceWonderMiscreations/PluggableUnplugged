@@ -3,6 +3,169 @@ PluggableUnplugged
 
 This plugin installs but is not fully tested, as in, use at your own risk.
 
+This plugin does four things:
+
+* [Generate WordPress Config Salts](#wordpress-config-salts)
+* [Better Hash, Salt, and WordPress Nonce Generation](#better-hash-salt-and-wordpress-nonce-generation)
+
+
+WordPress Config Salts
+----------------------
+
+When setting up a WordPress install, a very important part of the setup that is
+skipped by their ‘Famous Five Minute Install’ is configuring the salts used in
+the `wp-config.php` file.
+
+The traditional way to generate those salts is to visit the website
+[https://api.wordpress.org/secret-key/1.1/salt/](https://api.wordpress.org/secret-key/1.1/salt/)
+where it will generate the salts for you, and you can copy and paste the
+results into your `wp-config.php` file.
+
+That is *probably* safe to do, but there are two issues:
+
+1. You have no idea what their server is actually using to generate those
+salts.
+2. You have no idea whether or not they are logging the salts that are
+generated.
+
+It may be paranoid, but why trust an unknown when you generate the salts in a
+way that you can inspect and know for sure are not logged by a third party?
+
+In the `bin/` directory of this plugin is a PHP shell script called
+[`mksalts.php`](bin/mksalts.php) that you can inspect to make sure it does the
+salt generation in a safe way, and also know for sure that the salts generated
+are not being logged by a third party.
+
+To run the script:
+
+    php mksalts.php
+
+That will produce output similar to the following:
+
+    define('AUTH_KEY',         'clbv2KOi126xgEZdoGBRLlC/uTZwH+O4AYJBN0nJoiS=ng4aYe1Vp=WzML6phbtuM/+yxmoEyhmqzLkjvpYb0hfS');
+    define('SECURE_AUTH_KEY',  'O5=9yk608Hp37vTX2yrmL67oMeLMwjh2Rq/AjJQTR+aL7R1qMawHnOKX2ABl5lW9trzoXfO3L9Ee=PrWugNeoqvr');
+    define('LOGGED_IN_KEY',    'kEFyqlZgEkJA+JF6FHb7RwX6eK=GdI49LTH4Kw8Rn2rWyqrKgGVwEYPxwOmaaHOLR2PGcTnHxsm6H=afEwFJjSHc');
+    define('NONCE_KEY',        'Vq=BmmYJHroj9=2Qve38NSoC6mhKa44OOy3OveQClboj9aTGeUI5un4r35csaLiyy/PuzqGc6nxtObU2QjccRCr0');
+    define('AUTH_SALT',        'IEi0Xsj7DK7x=vdJagocko3FHH=vQozT7chpD9HAltcJkf7BjajoHEowOjsO8tJsdAV+3ba6mQKaNUe3nzPumhYi');
+    define('SECURE_AUTH_SALT', '3GpehX5T8g4pwMZApv2jnoMzcaufbVQ/v=PQiT8tQnW5ICIEqx11QeOaCqKqfMBu2sfOnd+zwY5l5hikjop=feCX');
+    define('LOGGED_IN_SALT',   '0yboi+/5rEOXG=Eqb+fEUZVq7Tu+nkmbdJRenub3exco71Z7V4OZXF5=4FwRoEt/eDWNSdorwkJzLu7kE6kEmbnk');
+    define('NONCE_SALT',       'DQE2+QqYWhG+mGfshObSw3vx3AZCWELiPXzZrHF4IOBjer=UxkBCKu+eUmVJcFPID6Br6qpFf=NPaHxCxi07eGd8');
+
+Each salt is generated using the cryptographically suitable `random_bytes()`
+function, the result of which is then base64 encoded and then finally shuffled
+(which is why the padding `==` is not at the end).
+
+64 bytes is significantly more than the 256 bits (32 bytes) of random data I
+personally usually recommend for a salt that is to be used more than once.
+
+I personally like to change my salts every time I do a major update that
+requires downtime just to make previous salts invalid, since WordPress uses
+them in the generation of CSRF tokens they *wrongly* call nonces.
+
+
+Better Hash, Salt, and WordPress Nonce Generation
+-------------------------------------------------
+
+I am not a fan of how WordPress generates hashes, salts, and what they call
+a nonce but have no right to call a nonce.
+
+### WordPress Hashes
+
+The WordPress functions for creating non-password related hashes use the PHP
+[`hash_hmac()`](http://php.net/manual/en/function.hash-hmac.php) function with
+`md5` as the algorithm.
+
+There is no good reason to continue using `md5`,
+[md5 is broken](https://en.wikipedia.org/wiki/MD5#Security) and there just is
+not a justifiable reason to keep using it.
+
+The `wp_hash()` function is replaced by one that uses
+`sodium_crypto_generichash()` instead. That is a secure alternative to
+`hash_hmac()` that does not use `md5` and is safe to use where a hash is
+needed.
+
+### WordPress Salts
+
+The `wp_salt()` function that WordPress uses generates salts either using the
+random password generating facilities or by using `hash_hmac()` with `md5`.
+
+The salt generation functions have been replaced to instead create the salt
+using a base64 encoding of 32 bytes of random data from a cryptographically
+secure pRNG or by using `sodium_crypto_generichash()` when it is a salt that
+is not stored but needs to regenerate the same every time it is generated.
+
+### WordPress Nonce
+
+A __nonce__ is a cryptography term to literally indicate a __N__umber that is
+used only __once__.
+
+The original use of the word was actually not numeric in nature, but used to
+indicate an [occasionalism](https://en.wikipedia.org/wiki/Nonce_word), a word
+created for ‘a single occasion to solve an immediate problem of communication.’
+
+In the context of computer science, it literally means a number used only once
+that is then invalid for future use. There generally are two types of nonces:
+
+1. With some cryptography ciphers, a nonce that does not need to be kept a
+secret is used. These nonces can be publicly disclosed and predictable without
+impacting the security of the secret key or the encoded message. They are often
+used with AEAD ciphers and are frequently encoded in plain text as part of the
+Associated Data with the ciphertext. The same nonce should never be used twice
+with the same secret key, or it may be possible for an attacker to derive the
+secret key.
+
+2. In other users, they need to be kept a secret and should be random so that
+they can not be guessed. Use of a nonce as a CSRF token is one such example. In
+these cases, a nonce should be at *least* a 128-bit random number generated
+using a cryptographically suitable pseudo Random Number Generator (pRNG).
+
+WordPress calls what they generate a nonce, but it is incorrect for them to do
+so. They use it in the context of CSRF tokens yet it is both predictable *and*
+they re-use the same nonce for up to twelve hours, with the nonce remaining
+valid for an additional 12 hours after they move a different nonce.
+
+Furthermore, they intentionally limit their token to 80 bits even though it
+starts life as a 128 byte token.
+
+This plugin is not able to completely completely correct their abuse of what
+a nonce is suppose to be, but it does make some improvements.
+
+Instead of using `hash_hmac()` with `md5` on predictable data to generate the
+CSRF token, `sodium_crypto_generichash()` is used. The result is then base64
+encoded instead of hex encoded, and the only characters removed are the `+`
+and `/` characters, which are removed because WordPress often uses the token in
+`GET` variables rather than always using `POST`.
+
+Finally, the life of a token is reduced to three hours maximum, with a new
+token generated every 90 minutes.
+
+For those writing WordPress plugins who want an actual nonce instead of the
+less secure token that WordPress calls a nonce, this plugin provides two
+non-standard functions you can use:
+
+* `awm_create_nonce(int $ttl = 10800, string $action = 'generic'): string`  
+  This function creates a random 128-bit nonce, stores it in the user
+  session data associated with the specified `$action`, and returns the
+  nonce so that it can be included as a hidden input in a generated form.
+
+* `awm_verify_nonce(string $nonce, string $action = 'generic'): bool`  
+  This function verifies that specified nonce has been stored in the user's
+  session data associated with the specified `$action` and then invalidates
+  it from validating in the future, as it has been used. It return `true`
+  when it is fed a nonce that validates, and `false` when it is fed a nonce
+  that does not validate.
+
+If you write plugins and have need for a CSRF token, if you do not mind your
+plugin requiring this one, you can safely use those functions for your CSRF
+nonce validation instead of the less secure WordPress versions.
+
+
+
+TTTTTTTTTTTTTTTTTTTTTt
+======================
+
+
+
 If you install, all password hashes will be updated to argon2id which means
 removing the plugin will result in an inability to log in, you'll have to do a
 password reset after removing / de-activating the plugin.
@@ -68,25 +231,11 @@ stronger (more rounds) hashes.
 Non-Password Hash, Salt, and Nonce Related
 ------------------------------------------
 
-The WordPress functions for creating non-password related hashes use the PHP
-[`hash_hmac()`](http://php.net/manual/en/function.hash-hmac.php) function with
-`md5` as the algorithm.
 
-There is no good reason to continue using `md5`,
-[md5 is broken](https://en.wikipedia.org/wiki/MD5#Security) and there really is
-not a justifiable reason to keep using it.
 
-The `wp_hash()` function is replaced by one that uses
-`sodium_crypto_generichash()` instead. That is a secure alternative to
-`hash_hmac()` and is safe to use.
 
-The `wp_salt()` function that WordPress uses generates salts either using the
-random password generating facilities or by using `hash_hmac()` with `md5`.
 
-The salt generation functions have been replaced to instead create the salt
-using a base64 encoding of 32 bytes of random data from a cryptographically
-secure pRNG or by using `sodium_crypto_generichash()` when it is a salt that
-is not stored but needs to regenerate the same every time it is generated.
+
 
 ### Nonces
 
