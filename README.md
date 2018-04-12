@@ -20,11 +20,13 @@ This is the github readme, intended primarily for developers. Non-developers
 are of course free to read this, but *may* be better served by the readme that
 is not yet written but will accompany the actual plugin.
 
-This plugin does four things:
+This plugin does five things:
 
 * [Generate WordPress Config Salts](#wordpress-config-salts)
 * [Better Hash, Salt, and WordPress Nonce Generation](#better-hash-salt-and-wordpress-nonce-generation)
 * [Blog Comment Avatars with Privacy](#blog-comment-avatars-with-privacy)
+* [Optional Argon2id Password Hashing](#optional-argon2id-password-hashing)
+* [UnpluggedStatic Class](#unpluggedstatic-class)
 
 
 WordPress Config Salts
@@ -85,8 +87,10 @@ them in the generation of CSRF tokens they *wrongly* call nonces.
 Better Hash, Salt, and WordPress Nonce Generation
 -------------------------------------------------
 
-I am not a fan of how WordPress generates hashes, salts, and what they call
-a nonce but have no right to call a nonce.
+I am not a fan of how WordPress generates hashes, salts, and what they wrongly
+call a nonce. Really they have no right to call it nonce. They can call it a
+token, but calling it a nonce is misleading and can result in a false sense of
+security that can be dangerous.
 
 ### WordPress Hashes
 
@@ -98,7 +102,7 @@ There is no good reason to continue using `md5`,
 [md5 is broken](https://en.wikipedia.org/wiki/MD5#Security) and there just is
 not a justifiable reason to keep using it.
 
-The `wp_hash()` function is replaced by one that uses
+The `wp_hash()` function is replaced in this plugin by one that uses
 `sodium_crypto_generichash()` instead. That is a secure alternative to
 `hash_hmac()` that does not use `md5` and is safe to use where a hash is
 needed.
@@ -111,7 +115,7 @@ random password generating facilities or by using `hash_hmac()` with `md5`.
 The salt generation functions have been replaced to instead create the salt
 using a base64 encoding of 32 bytes of random data from a cryptographically
 secure pRNG or by using `sodium_crypto_generichash()` when it is a salt that
-is not stored but needs to regenerate the same every time it is generated.
+is not stored but needs to generate the same value every time it is generated.
 
 ### WordPress Nonce
 
@@ -157,6 +161,10 @@ and `/` characters, which are removed because WordPress often uses the token in
 
 Finally, the life of a token is reduced to a three hours maximum, with a new
 token generated every 90 minutes.
+
+Unfortunately it still creates the token in a predictable way and reuses the
+same token many times during the given time period it is valid for, but it
+isn't *quite as bad* as the native WordPress ‘nonce’ generation.
 
 For those writing WordPress plugins who want an *actual nonce* instead of the
 less secure token that WordPress calls a nonce, this plugin provides two
@@ -233,177 +241,103 @@ Presently a system administrator may create a white list of domains and/or
 e-mail addresses where the hash is not obfuscated. Once gravatar.com is no
 longer used, that option will no longer be necessary.
 
+#### PHP Classes
+
+A generic abstract class in the file `lib/Groovytar.php` does most of the work.
+
+A WordPress specific class `lib/WordPressGroovytar.php` extends that class so
+that it can deal with WordPress specific issues, like extracting the e-mail to
+hash from a WordPress post object.
+
+This was done because in the past when I created Gravatar obfuscation
+solutions, WordPress changed to break my obfuscation. A WordPress specific
+class that extends a generic class seemed like the easiest way to deal with
+such changes in the future, as I suspect they are likely to happen again.
 
 
+Optional Argon2id Password Hashing
+----------------------------------
+
+[Argon2](https://github.com/P-H-C/phc-winner-argon200) is an advanced password
+hashing algorithm.
+
+As you hopefully are aware, passwords should *never* be stored in plain text.
+instead, a hash should be computed against the password and the hash of the
+password should be stored.
+
+When the user wants to log in, their supplied password is hashed and checked
+against the stored hash to make sure it matches.
+
+It is not however that simple. If a hacker manages to get a dump of the
+WordPress database, the attacker can run a dictionary attack against the
+stored password hashes until the attacker finds some matches - passwords that
+produce the desired hash.
+
+Good hashing algorithms will be both processor and memory intensive to make it
+computationally expensive for an attacker who gained access to the database
+of hashes to try a dictionary attack against the hashes in the database.
+
+The Argon2 algorithms do that. In fact in PHP 7.2 the Argon2i variant is now
+the default with the native PHP `password_*` functions, see
+[https://wiki.php.net/rfc/argon2_password_hash](https://wiki.php.net/rfc/argon2_password_hash)
+
+This class *optionally* uses the Argon2id variant for WordPress password
+hashing.
+
+Nutshell: The Argon2i variant is vulnerable to side-channel attacks and the
+Argon2d variant is vulnerable to time-memory trade off attacks. Argon2id is a
+hybrid variant that uses Argon2i initially followed by Argon2d giving it some
+measure of protection against both types of attacks.
+
+This plugin uses the PHP libsodium wrapper to provide Argon2id password
+hashing. By default, it is turned off because as each user logs in to your
+system after enabling, their password hash will be updated to use Argon2id
+for the hash which means if you ever disable this plugin, they will not be able
+to log in again without doing a password reset.
+
+I highly recommend enabling this feature. WordPress uses an older hashing
+algorithm in order to maintain compatibility with older versions of PHP, but
+that is not proactive security. WordPress developers value running everywhere
+with their ‘Famous Five Minute Install’ over running as safely as they should.
+
+Just be warned that once you do enable this feature, reverting will require
+that users reset their password as vanilla WordPress is not (yet) capable of
+dealing with Argon2id password hashes without a plugin to give it that ability.
+
+When this is enabled, the first time a user logs in again their hash will be
+updated to use Argon2id. After that, every time they log in there is a 20%
+chance their hash will be regenerated. This is to allow for improvements in
+the hardware to be taken into consideration resulting in a stronger hash that
+is even more computational and memory resource intensive to try and brute force
+with a dictionary attack.
 
 
+UnpluggedStatic Class
+---------------------
 
-TTTTTTTTTTTTTTTTTTTTTt
-======================
+This plugin provides a namespaced class of static functions called
+`\AWonderPHP\PluggableUnplugged\UnpluggedStatic` that exists to provide
+functions of benefit both to this plugin and potentially to other plugins.
 
+Placing the functions as static methods inside a namespaced class makes it
+easy to avoid function name collisions with functions provided by other
+plugins.
 
+For example, the WordPress `wp_rand()` function does the right thing but a
+plugin developer probably should not use it because any plugin can *replace*
+that function with one that does __not__ do the right thing.
 
-If you install, all password hashes will be updated to argon2id which means
-removing the plugin will result in an inability to log in, you'll have to do a
-password reset after removing / de-activating the plugin.
+The UnpluggedStatic class hopes to provide stable functions within a namespace
+that won't be replaced by other plugins, e.g.
 
-Very alpha still.
+    \AWonderPHP\PluggableUnplugged\UnpluggedStatic::safeRandInt($a, $b)
 
-__YOU HAVE BEEN WARNED__
+To safely produce a random integer between `$a` and `$b` inclusive regardless
+of what other plugins may have redefined `wp_rand()` to do.
 
-Now, ignore my warning and use on heavy production sites so I can have the bug
-reports. I can filter out the cursing that will accompany them.
-
----------------------------------------------------
-
-The purpose of this plugin is to improve how some of the WordPress
-`pluggable.php` functions do their thing on hosts that are both running PHP 7
-or newer and have the libsodium wrapper functions available.
-
-At this point in time, PHP 7 should be the norm for any WordPress host, as PHP
-5.6.x only receives security fixes.
-
-Starting with PHP 7.2, a default build of PHP includes the libsodium extensions
-so it soon will become very common for PHP on commercial hosting companies to
-already have those extensions available with PHP.
-
-The plugin installs a class of static methods that other plugins can use and
-also provides some improvements to some of the standard `wp_` functions that
-can be found in the WordPress `pluggable.php` file.
-
-
-Password Related
-----------------
-
-This class provides for password hashing using the
-[`argon2id`](https://en.wikipedia.org/wiki/Argon2) function to generate the
-password hash.
-
-The replacement password related functions also call `sodium_memzero()` to
-properly zero out the plain text password in memory after doing their thing.
-
-The WordPress functions the password related functions replace allow for
-callback functions to do things but take the plain text password as an
-argument. I see that as dangerous so those filters are not run in the
-replacement functions.
-
-That means if for example you have a plugin that makes sure a user does not set
-their password to one they have used before, it will not work. Too bad so sad,
-I have seen no evidence that such measures actually improve the security of a
-website anyway and I fear what some plugins that create callback functions may
-do with the plain text password, thinking they are being helpful.
-
-I would like to be add a cracklib check on passwords when the cracklib
-functions are available but the
-[PECL extension](https://pecl.php.net/package/crack) has not been updated since
-2005 and has a [known 64-bit bug](https://bugs.php.net/bug.php?id=56611) not
-fixed in a released version.
-
-When a password is verified, there is a 20% chance the hash in the database
-will be updated. This allows for stronger hashes to automatically be migrated
-into use for existing accounts as the server hardware is upgraded allowing for
-stronger (more rounds) hashes.
-
-
-Non-Password Hash, Salt, and Nonce Related
-------------------------------------------
-
-
-
-
-
-
-
-### Nonces
-
-With respect to nonces, WordPress has no fucking right to call what they are
-generating a nonce.
-
-A nonce __by definition__ is only used once and then is invalid for further
-use.
-
-When used in the context of
-[CSRF Tokens](https://www.owasp.org/index.php/Cross-Site_Request_Forgery_(CSRF)_Prevention_Cheat_Sheet)
-which is what WordPress uses them for, they need to be random without the
-ability to guess them. That means generated with a quality cryptographically
-secure pRNG with at least 128 bits of entropy.
-
-WordPress intentionally creates them in a predictable fashion and then actually
-reduces the nonce to only 80 bits.
-
-A nonce for a particular action only changes every twelve hours and is still
-valid for twelve hours after it has changed. That violates the very definition
-of use once then invalid.
-
-I was not able to completely fix their CSRF nonce infrastructure without
-breaking every plugin that uses them, but I did make some improvements with the
-replacement functions.
-
-First of all, the nonce is created using `sodium_crypto_generichash()` and the
-full 128 bits is used for the nonce, not just 80 bits of it.
-
-Additionally I shortened the tick time in `wp_nonce_tick()` to give the nonce
-a valid lifetime of up to only three hours instead of up to twenty-four hours.
-
-In the `bin/` directory is a PHP shell script called
-[`mksalts.php`](bin/mksalts.php) that will generate suitable salts you can copy
-and paste into your `wp-config.php` file that are quality generated salts. It
-is a good idea to change those salts every now and then in case they have been
-compromised by a bug in the platform or a plugin.
-
-However the nonce can still potentially be predicted by an attacker who is able
-to get a few pieces of information that can potentially be leaked by bugs in
-the platform or bugs in various plugins. No randomness exists in the generation
-of a WordPress nonce other than what is in the static salts and the user
-session token, both of which can potentially be discovered by an exploit.
-
-To compensate, two new functions have been added:
-
-* `function awm_create_nonce(int $ttl = 10800, string $action = 'generic'): string`
-* `function awm_verify_nonce(string $nonce, string $action = 'generic'): bool`
-
-The first creates a completely random nonce that uses 16 bytes of pRNG data (128
-bits) and the second validates a nonce, making the nonce invalid for any future
-validation.
-
-How long a nonce is valid for before it expires even when not used can also be
-specified. Certain actions, such as administrative actions, should probably
-have a much shorter life than the default three hours.
-
-Plugin developers who need a CSRF nonce should use those functions if available
-instead of the `wp_` nonce functions.
-
-If a plugin uses the nonce in the context of AJAX submission, the server-side
-AJAX processing should generate a new nonce that is returned with the response
-as the nonce sent with the form submission will be invalidated once used.
-
-
-Gravatar Related
-----------------
-
-Gravatar is a huge privacy leak. It results in an unsalted hash of the user
-e-mail address being published on the web page. This makes it trivial for
-hackers and others to create tables of e-mail addresses they are interested in
-and search the web for blogs that e-mail address has posted to.
-
-This class obfuscates the e-mail hash using a pair of salts that are custom to
-to the blog so that when someone comments on the blog, the avatar will not
-include an unsalted hash of their e-mail address and will in fact be different
-from a hash where the same e-mail address was used to comment on a different
-blog.
-
-
-TO BE CONTINUED
-===============
-
-I still need to write unit tests and an admin interface so that the blog admin
-can decide whether or not they want `argon2id` password hashing and whether or
-not they want to add any domains or e-mail addresses to a white list of what
-does *not* get obfuscated when making a gravatar hash.
-
-
-
-
+Please note that as I continue to develop additional privacy related plugins,
+this class will receive updates to include additional static methods that are
+generic in nature and potentially useful to other plugins.
 
 ---------------------------------------------------
 __EOF__
