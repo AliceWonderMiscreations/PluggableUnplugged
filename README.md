@@ -3,10 +3,15 @@ PluggableUnplugged
 
 This plugin installs but is not fully tested, as in, use at your own risk.
 
+The is the github readme, intended primarily for developers. Non-developers are
+of course free to read this, but *may* be better served by the readme that is
+not yet written but will accompany the actual plugin.
+
 This plugin does four things:
 
 * [Generate WordPress Config Salts](#wordpress-config-salts)
 * [Better Hash, Salt, and WordPress Nonce Generation](#better-hash-salt-and-wordpress-nonce-generation)
+* [Blog Comment Avatars with Privacy](#blog-comment-avatars-with-privacy)
 
 
 WordPress Config Salts
@@ -28,8 +33,8 @@ salts.
 2. You have no idea whether or not they are logging the salts that are
 generated.
 
-It may be paranoid, but why trust an unknown when you generate the salts in a
-way that you can inspect and know for sure are not logged by a third party?
+It may be paranoid, but why trust an unknown when you can generate the salts in
+a way that you can inspect and know for sure are not logged by a third party?
 
 In the `bin/` directory of this plugin is a PHP shell script called
 [`mksalts.php`](bin/mksalts.php) that you can inspect to make sure it does the
@@ -96,7 +101,7 @@ is not stored but needs to regenerate the same every time it is generated.
 
 ### WordPress Nonce
 
-A __nonce__ is a cryptography term to literally indicate a __N__umber that is
+A __nonce__ is a cryptography term to literally indicate a __N__ umber that is
 used only __once__.
 
 The original use of the word was actually not numeric in nature, but used to
@@ -114,18 +119,18 @@ Associated Data with the ciphertext. The same nonce should never be used twice
 with the same secret key, or it may be possible for an attacker to derive the
 secret key.
 
-2. In other users, they need to be kept a secret and should be random so that
-they can not be guessed. Use of a nonce as a CSRF token is one such example. In
-these cases, a nonce should be at *least* a 128-bit random number generated
+2. In other uses, the nonce needs to be kept a secret and should be random so
+that it can not be guessed. Use of a nonce as a CSRF token is one such example.
+In these cases, a nonce should be at *least* a 128-bit random number generated
 using a cryptographically suitable pseudo Random Number Generator (pRNG).
 
 WordPress calls what they generate a nonce, but it is incorrect for them to do
 so. They use it in the context of CSRF tokens yet it is both predictable *and*
 they re-use the same nonce for up to twelve hours, with the nonce remaining
-valid for an additional 12 hours after they move a different nonce.
+valid for an additional 12 hours after they move to a different nonce.
 
 Furthermore, they intentionally limit their token to 80 bits even though it
-starts life as a 128 byte token.
+starts life as a 128 bit token.
 
 This plugin is not able to completely completely correct their abuse of what
 a nonce is suppose to be, but it does make some improvements.
@@ -158,6 +163,63 @@ non-standard functions you can use:
 If you write plugins and have need for a CSRF token, if you do not mind your
 plugin requiring this one, you can safely use those functions for your CSRF
 nonce validation instead of the less secure WordPress versions.
+
+
+Blog Comment Avatars with Privacy
+---------------------------------
+
+By default, WordPress uses an avatar system owned by
+[Automattic](https://automattic.com/) called Gravatar. The Gravatar leaks
+information about people who post comments on your blog and in a very bad way.
+
+What it does, it uses a plain unsalted `md5` hash of the person's private
+e-mail address to reference the Avatar image that is used. This is done whether
+or not the user has a Gravatar account without any consideration for whether or
+not that user values privacy.
+
+This makes it simple for an attacker looking to find out information about a
+person to locate all the WordPress blogs that person makes posts to. All the
+attacker has to do is take a simple `md5()` hash of the target's e-mail address
+and the attacker can set up a search over the web for WordPress blog comments
+where that hash appears as part of the Gravatar.
+
+Tracking cookies are also set on the gravatar.com domain, allowing the included
+gravatar to be used as a source for Automattic tracking your users.
+
+### The Solution
+
+Long term, the goal is to replace Gravatar with a completely different system
+that values privacy and does not use any tracking cookies with the avatars that
+are served.
+
+For the short term, the e-mail address is salted using salts specific to the
+WordPress install before the hash is calculated, so that the same e-mail
+address will never have the same hash at different sites and will not have a
+hash that an attacker can guess. Also, the secure URL for the avatar is always
+fetched whether or not the WordPress function `is_ssl()` returns `true`.
+
+In the long term as time *and money* allow, an alternate service that does not
+use tracking cookies will be set up. This planned service will serve SVG
+avatars *except* when the user has uploaded their own.
+
+When a user writes a comment on a blog, the user will have an option to check
+a box indicating they want the avatar at that block to be tied to the avatar
+they have uploaded to the alternate service. That hash will still be unique to
+that blog, but the block will send an anonymized identifier that allows us to
+serve the user's desired image in response to that specific hash.
+
+The system will be both opt-in and opt-out with the user having complete
+control over whether or not an image they uploaded is used and at what blogs it
+is used.
+
+#### Non-obfuscation
+
+Presently a system administrator may create a white list of domains and/or
+e-mail addresses where the hash is not obfuscated. Once gravatar.com is no
+longer used, that option will no longer be necessary.
+
+
+
 
 
 
