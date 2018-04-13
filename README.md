@@ -278,11 +278,11 @@ computationally expensive for an attacker who gained access to the database
 of hashes to try a dictionary attack against the hashes in the database.
 
 The Argon2 algorithms do that. In fact in PHP 7.2 the Argon2i variant is now
-the default with the native PHP `password_*` functions, see
+available with the native PHP `password_*` functions, see
 [https://wiki.php.net/rfc/argon2_password_hash](https://wiki.php.net/rfc/argon2_password_hash)
 
-This class *optionally* uses the Argon2id variant for WordPress password
-hashing.
+This plugin does not use that RFC but instead uses libsodium and uses the
+Argon2id variant rather than Argon2i variant for WordPress password hashing.
 
 Nutshell: The Argon2i variant is vulnerable to side-channel attacks and the
 Argon2d variant is vulnerable to time-memory trade off attacks. Argon2id is a
