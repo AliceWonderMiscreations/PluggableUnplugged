@@ -88,11 +88,17 @@ class AdminMenu
         echo('<td><input type="text" id="addEmails" name="addEmails" size="64" title="Enter e-mail addresses to white-list" autocomplete="off" /></td>' . "\n");
         echo('</tr></table>' . "\n");
         
-        if (! $addys=get_option('groovytarAddresses')) {
-            $addys=array();
+        $addys = array();
+        if (! $configAddys=get_option('groovytarAddresses')) {
+            $configAddys=array();
+        }
+        foreach($configAddys as $eadd) {
+            if(! in_array($eadd, array('anonymous@gravatar.com', 'wapuu@wordpress.example'))) {
+                $addys[] = $eadd;
+            }
         }
         $j=sizeof($addys);
-        if ($j != 0) {
+        if ($j !== 0) {
             echo("<h3>Remove Existing E-Mail Addresses</h3>\n");
             // @codingStandardsIgnoreLine
             echo("<p>If you wish to remove an e-mail address from the white-list, check the box next to the e-mail address.</p>\n");
