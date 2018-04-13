@@ -21,6 +21,26 @@ namespace AWonderPHP\PluggableUnplugged;
 class InvalidArgumentException extends \InvalidArgumentException
 {
     /**
+     * Filter special html characters
+     *
+     * @param string $input The string to filter
+     *
+     * @return string The filtered string
+     */
+    public static function specialCharacterFilter(string $input): string
+    {
+        $s = array();
+        $r = array();
+        $s[] = '/&/';
+        $r[] = '&amp;';
+        $s[] = '/</';
+        $r[] = '&lt;';
+        $s[] = '/>/';
+        $r[] = '&gt;';
+        return preg_replace($s, $r, $input);    
+    }
+    
+    /**
      * Exception message for an invalid domain.
      *
      * @param string $str The invalid domain name.
@@ -29,6 +49,7 @@ class InvalidArgumentException extends \InvalidArgumentException
      */
     public static function invalidDomain(string $str)
     {
+        $str = self::specialCharacterFilter($str);
         return new self(sprintf(
             'The supplied domain <code>%s</code> is not a valid domain name.',
             $str
@@ -45,6 +66,7 @@ class InvalidArgumentException extends \InvalidArgumentException
      */
     public static function invalidEmail(string $str)
     {
+        $str = self::specialCharacterFilter($str);
         return new self(sprintf(
             'The supplied e-mail address <code>%s</code> is not a valid e-mail address.',
             $str
