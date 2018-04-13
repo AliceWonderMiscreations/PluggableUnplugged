@@ -32,10 +32,13 @@ abstract class Groovytar
      *
      * @var array
      */
+    protected $addresses = array();
+    /*
     protected $addresses = array(
         'anonymous@gravatar.com',
         'wapuu@wordpress.example'
     );
+    */
     
     /**
      * The salts to use when created an obfuscated hash.

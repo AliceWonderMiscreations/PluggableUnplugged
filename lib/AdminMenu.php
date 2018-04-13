@@ -88,7 +88,7 @@ class AdminMenu
         echo('<td><input type="text" id="addEmails" name="addEmails" size="64" title="Enter e-mail addresses to white-list" autocomplete="off" /></td>' . "\n");
         echo('</tr></table>' . "\n");
         
-        if (! $addys=get_option('groovytarAddys')) {
+        if (! $addys=get_option('groovytarAddresses')) {
             $addys=array();
         }
         $j=sizeof($addys);
