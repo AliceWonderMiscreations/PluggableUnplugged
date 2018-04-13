@@ -17,6 +17,7 @@ declare(strict_types=1);
  * @link    https://github.com/AliceWonderMiscreations/PluggableUnplugged
  */
 
+require_once(__DIR__ . '/lib/InvalidArgumentException.php');
 require_once(__DIR__ . '/lib/UnpluggedStatic.php');
 require_once(__DIR__ . '/lib/Groovytar.php');
 require_once(__DIR__ . '/lib/WordPressGroovytar.php');
