@@ -18,6 +18,8 @@ This is the github readme, intended primarily for developers. Non-developers
 are of course free to read this, but *may* be better served by the readme that
 is not yet written but will accompany the actual plugin.
 
+The end user readme: [readme.txt](readme.txt)
+
 This plugin does five things:
 
 * [Generate WordPress Config Salts](#wordpress-config-salts)
