@@ -3,6 +3,8 @@ PluggableUnplugged
 
 This plugin installs but is not fully tested, as in, use at your own risk.
 
+Few known bugs to fix still before release.
+
 This plugin definitely works with the PHP 7.1.x branch, *probably* works with
 the PHP 7.2.x branch, and *likely* works with the PHP 7.0.0 branch, though I
 encourage PHP 7.0.0 users to upgrade to at least 7.1.x.
