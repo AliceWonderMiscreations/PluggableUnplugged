@@ -134,7 +134,7 @@ class UnpluggedStatic
         }
         if (count($newQueryArray) > 0) {
             $arr = array();
-            foreach($newQueryArray as $key => $value) {
+            foreach ($newQueryArray as $key => $value) {
                 $arr[] = $key . '=' . $value;
             }
             $parsed['query'] = implode('&', $arr);
@@ -151,7 +151,7 @@ class UnpluggedStatic
             $url = $url . ':' . $parsed['port'];
             $realurl = $realurl . ':' . $parsed['port'];
         }
-        if(! isset($parsed['path'])) {
+        if (! isset($parsed['path'])) {
             $parsed['path'] = '/';
         }
         $url = $url . $parsed['path'];
@@ -254,6 +254,9 @@ class UnpluggedStatic
     {
         if ($length < 12) {
             $length = 12;
+        }
+        if ($length > 255) {
+            $length = 255;
         }
         $alphabet = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
         if ($special_chars) {

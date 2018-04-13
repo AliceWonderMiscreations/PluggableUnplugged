@@ -92,8 +92,8 @@ class AdminMenu
         if (! $configAddys=get_option('groovytarAddresses')) {
             $configAddys=array();
         }
-        foreach($configAddys as $eadd) {
-            if(! in_array($eadd, array('anonymous@gravatar.com', 'wapuu@wordpress.example'))) {
+        foreach ($configAddys as $eadd) {
+            if (! in_array($eadd, array('anonymous@gravatar.com', 'wapuu@wordpress.example'))) {
                 $addys[] = $eadd;
             }
         }
@@ -225,24 +225,33 @@ class AdminMenu
     {
         echo("<div>\n");
         echo('<h2 style="font-variant: small-caps;">Use Argon2id Password Hashing</h2>' . "\n");
+        // @codingStandardsIgnoreLine
         echo('<p>Argon2 is a modern algorithm for password hashing that is currently generally recommended over all other forms of password hashing, including what WordPress natively uses.</p>');
+        // @codingStandardsIgnoreLine
         echo('<p>Argon2 is the winner of the <a href="https://password-hashing.net/" target="_blank">Password Hashing Competition</a> that ran from 2013 to 2015 looking for the best password hashing algorithm. Argon2 is also the password hashing algorithm recommended by <a href="https://download.libsodium.org/doc/password_hashing/the_argon2i_function.html" target="_blank">libsodium</a> for passwords.</p>');
         echo("<p>There are three variants of Argon2. The Argon2id variant is the variant used here.</p>");
+        // @codingStandardsIgnoreLine
         echo("<p>If you wish to enable Argon2id hashing, as each registered user of your blog logs in, their existing password hash will be updated to use Argon2id for the password hashing. However, there is a caveat:</p>");
+        // @codingStandardsIgnoreLine
         echo("<p>If you ever remove this plugin, the password hashes can not be reverted without the users resetting their password.</p>");
+        // @codingStandardsIgnoreLine
         echo("<p>The advantage Argon2id gives over standard WordPress password hashing is only present when an attacker manages to get a dump of your password database, a fairly common occurrence with WordPress because WordPress unwisely uses a single database for everything. When the passwords are hashed with Argon2id, it becomes a lot more difficult for the attacker to figure out what the actual passwords are even when they have the hashes to them.</p>");
+        // @codingStandardsIgnoreLine
         echo("<p>Whether you choose to enable this feature or not is up to you. Obviously I recommend it or it would not be here, but it does mean that removing this plugin will result in your users needing to do a password reset, therefore I could not in good conscious default to it. So the choice is yours.</p>");
+        // @codingStandardsIgnoreLine
         echo('<table class="form-table">' . "\n" . '<tr valign="top">' . "\n" . '<th scope="row">Use Argon2id Password Hashing</th>' . "\n");
         if ($argonPassHash=get_option('PluggableUnpluggedUseArgon')) {
             $checked=' checked="checked"';
         } else {
             $checked='';
         }
+        // @codingStandardsIgnoreLine
         echo('<td><input type="checkbox" name="argon2idHash" value="T" id="argon2idHash"' . $checked . ' /><label for="argon2idHash"> Use the Argon2id Password Hashing Algorithm</label></td>' . "\n");
         echo("</tr>\n</table>");
         
         echo("</div>\n");
-    }
+    }//end switchToArgon()
+
 
     /**
      * Process the form
@@ -414,7 +423,7 @@ class AdminMenu
         }
         
         // switch to argon hash?
-        if(isset($_POST['argon2idHash'])) {
+        if (isset($_POST['argon2idHash'])) {
             update_option('PluggableUnpluggedUseArgon', 't');
         } else {
             delete_option('PluggableUnpluggedUseArgon');

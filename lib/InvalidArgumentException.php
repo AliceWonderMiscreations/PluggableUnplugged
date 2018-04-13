@@ -21,11 +21,11 @@ namespace AWonderPHP\PluggableUnplugged;
 class InvalidArgumentException extends \InvalidArgumentException
 {
     /**
-     * Filter special html characters
+     * Filter special html characters.
      *
-     * @param string $input The string to filter
+     * @param string $input The string to filter.
      *
-     * @return string The filtered string
+     * @return string The filtered string.
      */
     public static function specialCharacterFilter(string $input): string
     {
@@ -37,8 +37,9 @@ class InvalidArgumentException extends \InvalidArgumentException
         $r[] = '&lt;';
         $s[] = '/>/';
         $r[] = '&gt;';
-        return preg_replace($s, $r, $input);    
-    }
+        return preg_replace($s, $r, $input);
+    }//end specialCharacterFilter()
+
     
     /**
      * Exception message for an invalid domain.

@@ -34,7 +34,8 @@ final class UnpluggedStaticTest extends TestCase
         $expected = 'user@' . $ascii;
         $actual = \AWonderPHP\PluggableUnplugged\UnpluggedStatic::punycodeEmail('user@' . $nonascii);
         $this->assertEquals($expected, $actual);
-    }
+    }//end testPunycodeFunctiond()
+
     
     /**
      * Test nonce generation
@@ -57,7 +58,8 @@ final class UnpluggedStaticTest extends TestCase
         $expected = 44;
         $actual = strlen($foo);
         $this->assertEquals($expected, $actual);
-    }
+    }//end testNonceGeneration()
+
     
     /**
      * Test modification of query args
@@ -95,7 +97,8 @@ final class UnpluggedStaticTest extends TestCase
         $rmquery = array('foo');
         $actual = \AWonderPHP\PluggableUnplugged\UnpluggedStatic::modifyQueryArgs($actual, $query, $rmquery);
         $this->assertEquals($expected, $actual);
-    }
+    }//end testModifyQueryArgs()
+
     
     /**
      * Test cryptohash function
@@ -109,33 +112,7 @@ final class UnpluggedStaticTest extends TestCase
         $expected = 'm4uYSpbLaARR2zQvLqdKoYthgeVSU5Bl9nPMp8HI+QI=';
         $actual = \AWonderPHP\PluggableUnplugged\UnpluggedStatic::cryptoHash($string, $salt, 32);
         $this->assertEquals($expected, $actual);
-    }
+    }//end testCryptoHash()
+}//end class
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-}
+?>
