@@ -265,7 +265,7 @@ class UnpluggedStatic
         $alphabet = str_shuffle($alphabet);
         $max = (strlen($alphabet) - 1);
         $password = '';
-        for ($i=0; $i<= $length; $i++) {
+        for ($i=0; $i< $length; $i++) {
             $rnd = self::safeRandInt(0, $max);
             $password .= $alphabet[$rnd];
         }
