@@ -2,10 +2,10 @@
 declare(strict_types=1);
 
 /**
- * Plugin Name: Pluggable Unplugged
+ * Plugin Name: AWM Pluggable Unplugged
  * Plugin URI:  https://github.com/AliceWonderMiscreations/PluggableUnplugged
  * Description: Replacements for some (not all) of the WordPress pluggable.php functions.
- * Version:     0.1
+ * Version:     0.2
  * Author:      Alice Wonder Miscreations
  * Author URI:  https://github.com/AliceWonderMiscreations/
  * License:     MIT
@@ -618,6 +618,8 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
         add_action('wp_footer', 'groovytarFooter');
     }
 
+} else {
+    error_log('The AWM Pluggable Unplugged plugin requires PHP 7+ with the libsodium PECL extension.');
 }
 
 ?>

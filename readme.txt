@@ -84,4 +84,12 @@ anonymity of the users who comment.
 The plan is in the future to use a different service than Gravatar that does not use tracking cookies,
 feel free to contact me if you want more information about my future plans in this respect.
 
+This will not be something that happens soon, servers are not free and it will take some code to make
+a suitable replacement that produces fun avatars.
+
+With the replacement, users will be able to use custom avatars *and* keep the hash of their e-mail
+obfuscated, through an opt-in system that requires user validation that they want their custom avatar
+appearing on the specific blog *and* an opt-out system in case the user later changes their mind.
+
+
 EOF
