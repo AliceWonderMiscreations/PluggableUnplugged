@@ -412,7 +412,7 @@ abstract class Groovytar
                 'f' => $args['force_default'] ? 'y' : false,
                 'r' => $args['rating'],
         );
-        $url = 'https://secure.gravatar.com/avatar/' . $email_hash;
+        $url = 'https://devel.trippyid.com/avatar/' . $email_hash;
         $args['url'] = UnpluggedStatic::modifyQueryArgs($url, $url_args);
         return $args;
     }//end getAvatarData()
