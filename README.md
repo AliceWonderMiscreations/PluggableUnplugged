@@ -1,6 +1,19 @@
 PluggableUnplugged
 ==================
 
+__LICENSE NOTE__: I prefer MIT License and release this project under that very
+liberal license. However WordPress likes the less liberal GPLv2. So I dual
+license just because I am a nice guy. I consider this project MIT but the
+plugin as delivered to the WordPress plugin repository is specified as GPLv2.
+That also means that the inclusion of the TGMPA library in the version of this
+plugin as installed from within WordPress has no conflict.
+
+The shell script [mkwordpresszip.sh](mkwordpresszip.sh) changes the declared
+license in my PHP files when creating the version of this code that available
+(er, will be available) from the WordPress plugin repository.
+
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
 This plugin definitely works with the PHP 7.1.x branch, *probably* works with
 the PHP 7.2.x branch, and *likely* works with the PHP 7.0.0 branch, though I
 encourage PHP 7.0.0 users to upgrade to at least 7.1.x.

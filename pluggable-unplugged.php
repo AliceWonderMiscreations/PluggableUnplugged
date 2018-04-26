@@ -22,6 +22,7 @@ require_once(__DIR__ . '/lib/UnpluggedStatic.php');
 require_once(__DIR__ . '/lib/Groovytar.php');
 require_once(__DIR__ . '/lib/WordPressGroovytar.php');
 require_once(__DIR__ . '/lib/AdminMenu.php');
+require_once(__DIR__ . '/lib/class-tgm-plugin-activation.php');
 
 use \AWonderPHP\PluggableUnplugged\UnpluggedStatic as UnpluggedStatic;
 use \AWonderPHP\PluggableUnplugged\WordPressGroovytar as Groovytar;
@@ -617,6 +618,33 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
     if ($footerPermission=get_option('PluggableUnpluggedFooter')) {
         add_action('wp_footer', 'groovytarFooter');
     }
+    
+    // TGMPA
+    function pluggableUnpluggedTGMPA()
+    {
+        $plugins = array(
+            array(
+                'name' => 'Disable Emojis'; //name
+                'slug' => 'disable-emojis'; //slug
+                'required' => false,
+            ),
+        );
+        $config = array(
+            'id' => 'awm-pluggable-unplugged';
+            'default_path' => '',
+            'menu' => 'tgmpa-install-plugins',
+            'parent_slug' => 'plugins.php',
+            'capability' => 'manage_options',
+            'has_notices' => 'true',
+            'dismissable'  => true,
+            'dismiss_msg'  => '',
+            'is_automatic' => true,
+            'message'      => '',
+            
+        );
+        tgmpa($plugins,$config);
+    }
+    add_action('tgmpa_register', 'pluggableUnpluggedTGMPA');
 
 } else {
     error_log('The AWM Pluggable Unplugged plugin requires PHP 7+ with the libsodium PECL extension.');
