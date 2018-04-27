@@ -28,7 +28,6 @@ use \AWonderPHP\PluggableUnplugged\UnpluggedStatic as UnpluggedStatic;
 use \AWonderPHP\PluggableUnplugged\WordPressGroovytar as Groovytar;
 use \AWonderPHP\PluggableUnplugged\AdminMenu as PluggbleUnpluggedAdmin;
 
-
 // make sure PHP has what we need
 
 if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
@@ -611,7 +610,8 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
     {
         add_options_page('PluggableUnpluggable Administration', 'PluggableUnpluggable', 'manage_options', 'PluggableUnpluggable', 'pluggableUnpluggedAdminOptions');
         //add_submenu_page( $parent_slug, $page_title, $menu_title, $capability, $menu_slug, $function);
-    }
+    }//end pluggableUnpluggedAdminMenu()
+
 
     add_action('admin_menu', 'pluggableUnpluggedAdminMenu');
     
@@ -624,13 +624,13 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
     {
         $plugins = array(
             array(
-                'name' => 'Disable Emojis'; //name
-                'slug' => 'disable-emojis'; //slug
+                'name' => 'Disable Emojis', //name
+                'slug' => 'disable-emojis', //slug
                 'required' => false,
             ),
         );
         $config = array(
-            'id' => 'awm-pluggable-unplugged';
+            'id' => 'awm-pluggable-unplugged',
             'default_path' => '',
             'menu' => 'tgmpa-install-plugins',
             'parent_slug' => 'plugins.php',
@@ -642,10 +642,10 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
             'message'      => '',
             
         );
-        tgmpa($plugins,$config);
-    }
-    add_action('tgmpa_register', 'pluggableUnpluggedTGMPA');
+        tgmpa($plugins, $config);
+    }//end pluggableUnpluggedTGMPA()
 
+    add_action('tgmpa_register', 'pluggableUnpluggedTGMPA');
 } else {
     error_log('The AWM Pluggable Unplugged plugin requires PHP 7+ with the libsodium PECL extension.');
 }

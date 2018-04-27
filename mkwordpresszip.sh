@@ -6,7 +6,7 @@ done
 TMP=`mktemp -d /tmp/plugin.XXXXXXXX`
 mkdir -p ${TMP}/awm-pluggable-unplugged/lib
 
-cp TGMPA-GPLv2-LICENSE.md ${TMP}/LICENSE.txt
+cp TGMPA-GPLv2-LICENSE.md ${TMP}/awm-pluggable-unplugged/LICENSE.txt
 
 cd lib
 for code in AdminMenu.php Groovytar.php InvalidArgumentException.php UnpluggedStatic.php WordPressGroovytar.php; do
@@ -14,6 +14,7 @@ for code in AdminMenu.php Groovytar.php InvalidArgumentException.php UnpluggedSt
   |sed -e s?"https://opensource.org/licenses/MIT MIT"?"https://opensource.org/licenses/GPL-2.0 GPL-2.0"? \
   > ${TMP}/awm-pluggable-unplugged/lib/${code}
 done
+cp class-tgm-plugin-activation.php ${TMP}/awm-pluggable-unplugged/lib/
 cd ..
 cat pluggable-unplugged.php \
   |sed -e s?"https://opensource.org/licenses/MIT MIT"?"https://opensource.org/licenses/GPL-2.0 GPL-2.0"? \
