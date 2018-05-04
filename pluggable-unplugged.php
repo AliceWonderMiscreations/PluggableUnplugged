@@ -22,11 +22,11 @@ require_once(__DIR__ . '/lib/UnpluggedStatic.php');
 require_once(__DIR__ . '/lib/Groovytar.php');
 require_once(__DIR__ . '/lib/WordPressGroovytar.php');
 require_once(__DIR__ . '/lib/AdminMenu.php');
+require_once(__DIR__ . '/lib/class-tgm-plugin-activation.php');
 
 use \AWonderPHP\PluggableUnplugged\UnpluggedStatic as UnpluggedStatic;
 use \AWonderPHP\PluggableUnplugged\WordPressGroovytar as Groovytar;
 use \AWonderPHP\PluggableUnplugged\AdminMenu as PluggbleUnpluggedAdmin;
-
 
 // make sure PHP has what we need
 
@@ -452,7 +452,7 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
     function groovytarFooter(): void
     {
         // @codingStandardsIgnoreLine
-        echo('<div style="text-align: center;">' . __('Anonymity protected with') . ' <a href="https://wordpress.org/plugins/awm-pluggable-unplugged/" target="_blank">AWM Pluggable Unplugged</a></div>');
+        echo('<div style="text-align: center;">' . __('Anonymity protected with') . ' <a href="https://notrackers.com/pluggable-unplugged/" target="_blank">AWM Pluggable Unplugged</a></div>');
         return;
     }//end groovytarFooter()
 
@@ -610,14 +610,42 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
     {
         add_options_page('PluggableUnpluggable Administration', 'PluggableUnpluggable', 'manage_options', 'PluggableUnpluggable', 'pluggableUnpluggedAdminOptions');
         //add_submenu_page( $parent_slug, $page_title, $menu_title, $capability, $menu_slug, $function);
-    }
+    }//end pluggableUnpluggedAdminMenu()
+
 
     add_action('admin_menu', 'pluggableUnpluggedAdminMenu');
     
     if ($footerPermission=get_option('PluggableUnpluggedFooter')) {
         add_action('wp_footer', 'groovytarFooter');
     }
+    
+    // TGMPA
+    function pluggableUnpluggedTGMPA()
+    {
+        $plugins = array(
+            array(
+                'name' => 'Disable Emojis', //name
+                'slug' => 'disable-emojis', //slug
+                'required' => false,
+            ),
+        );
+        $config = array(
+            'id' => 'awm-pluggable-unplugged',
+            'default_path' => '',
+            'menu' => 'tgmpa-install-plugins',
+            'parent_slug' => 'plugins.php',
+            'capability' => 'manage_options',
+            'has_notices' => 'true',
+            'dismissable'  => true,
+            'dismiss_msg'  => '',
+            'is_automatic' => true,
+            'message'      => '',
+            
+        );
+        tgmpa($plugins, $config);
+    }//end pluggableUnpluggedTGMPA()
 
+    add_action('tgmpa_register', 'pluggableUnpluggedTGMPA');
 } else {
     error_log('The AWM Pluggable Unplugged plugin requires PHP 7+ with the libsodium PECL extension.');
 }
