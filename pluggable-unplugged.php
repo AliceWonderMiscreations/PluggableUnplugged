@@ -452,7 +452,7 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
     function groovytarFooter(): void
     {
         // @codingStandardsIgnoreLine
-        echo('<div style="text-align: center;">' . __('Anonymity protected with') . ' <a href="https://wordpress.org/plugins/awm-pluggable-unplugged/" target="_blank">AWM Pluggable Unplugged</a></div>');
+        echo('<div style="text-align: center;">' . __('Anonymity protected with') . ' <a href="https://notrackers.com/pluggable-unplugged/" target="_blank">AWM Pluggable Unplugged</a></div>');
         return;
     }//end groovytarFooter()
 
