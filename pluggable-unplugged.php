@@ -5,7 +5,7 @@ declare(strict_types=1);
  * Plugin Name: AWM Pluggable Unplugged
  * Plugin URI:  https://github.com/AliceWonderMiscreations/PluggableUnplugged
  * Description: Replacements for some (not all) of the WordPress pluggable.php functions.
- * Version:     0.2
+ * Version:     0.3
  * Author:      Alice Wonder Miscreations
  * Author URI:  https://github.com/AliceWonderMiscreations/
  * License:     MIT
@@ -17,16 +17,9 @@ declare(strict_types=1);
  * @link    https://github.com/AliceWonderMiscreations/PluggableUnplugged
  */
 
-require_once(__DIR__ . '/lib/InvalidArgumentException.php');
-require_once(__DIR__ . '/lib/UnpluggedStatic.php');
-require_once(__DIR__ . '/lib/Groovytar.php');
-require_once(__DIR__ . '/lib/WordPressGroovytar.php');
-require_once(__DIR__ . '/lib/AdminMenu.php');
 require_once(__DIR__ . '/lib/class-tgm-plugin-activation.php');
 
-use \AWonderPHP\PluggableUnplugged\UnpluggedStatic as UnpluggedStatic;
-use \AWonderPHP\PluggableUnplugged\WordPressGroovytar as Groovytar;
-use \AWonderPHP\PluggableUnplugged\AdminMenu as PluggbleUnpluggedAdmin;
+use \AWonderPHP\Groovytar\WordPressGroovytar as Groovytar;
 
 // make sure PHP has what we need
 
@@ -39,6 +32,9 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
         * if need be.
         *
         * @param string $scheme Optional. The scheme want a salt for. Defaults to 'auth'.
+        *
+        * @psalm-suppress UndefinedFunction
+        * @psalm-suppress UndefinedClass
         *
         * @return string The generated salt.
         */
@@ -80,7 +76,7 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
                     } elseif (! $values[$type]) {
                         $values[$type] = get_site_option("{$scheme}_{$type}");
                         if (! $values[$type]) {
-                            $values[$type] = UnpluggedStatic::saltShaker();
+                            $values[$type] = \AWonderPHP\PluggableUnplugged\Misc::saltShaker();
                             update_site_option("{$scheme}_{$type}", $values[$type]);
                         }
                     }
@@ -89,7 +85,7 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
                 if (! $values['key']) {
                     $values['key'] = get_site_option('secret_key');
                     if (! $values['key']) {
-                        $values['key'] = UnpluggedStatic::saltShaker();
+                        $values['key'] = \AWonderPHP\PluggableUnplugged\Misc::saltShaker();
                         update_site_option('secret_key', $values['key']);
                     }
                 }
@@ -97,7 +93,7 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
                 //  so I use crytoHash instead but I don't like that very much. However since
                 //  this is NOT stored in site_option database, it has to generate to same
                 //  value every time so I have to use a hash function.
-                $values['salt'] = UnpluggedStatic::cryptoHash($scheme, $values['key']);
+                $values['salt'] = \AWonderPHP\PluggableUnplugged\UnpluggedStatic::cryptoHash($scheme, $values['key']);
             }
         
             $cached_salts[$scheme] = $values['key'] . $values['salt'];
@@ -115,12 +111,14 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
          * @param string $data   Plain text to hash.
          * @param string $scheme Authentication scheme (auth, secure_auth, logged_in, nonce).
          *
+         * @psalm-suppress UndefinedClass
+         *
          * @return string Hash of $data.
          */
         function wp_hash(string $data, $scheme = 'auth')
         {
             $salt = wp_salt($scheme);
-            return UnpluggedStatic::cryptoHash($data, $salt, 16);
+            return \AWonderPHP\PluggableUnplugged\UnpluggedStatic::cryptoHash($data, $salt, 16);
         }//end wp_hash()
     endif;
     
@@ -134,6 +132,8 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
          * Default WP return float that is an integer. This return an int.
          * The returned value will always be smaller than time() so even
          * after 2038 there is no need to return a float.
+         *
+         * @psalm-suppress UndefinedFunction
          *
          * @return int Value rounded up to the next highest integer.
          */
@@ -155,6 +155,8 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
          * 16 byte nonce which is the best practice for a nonce.
          *
          * @param string|int $action Scalar value to add context to the nonce.
+         *
+         * @psalm-suppress UndefinedFunction
          *
          * @return string The base64 encoded 128-bit nonce token.
          */
@@ -183,6 +185,8 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
          *
          * @param string     $nonce  The nonce to verify.
          * @param string|int $action The context of the nonce.
+         *
+         * @psalm-suppress UndefinedFunction
          *
          * @return false|int False on failure, 1 if valid and recent, 2 if valid but old
          */
@@ -220,77 +224,6 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
             return false;
         }//end wp_verify_nonce()
     endif;
-    
-    // BETTER nonce functions for CSRF but would break some plugins
-    // if I did these as default
-    
-    /**
-     * Create a cryptographically strong CSRF nonce.
-     *
-     * @param int $ttl       Optional. The time in seconds the nonce token is valid for.
-     *                       Defaults to 3 hours. Admin functions should probably be
-     *                       shorter.
-     * @param string $action Optional. Defaults to 'generic'.
-     *
-     * @return string The 128-bit nonce token.
-     */
-    function awm_create_nonce(int $ttl = 10800, string $action = 'generic'): string
-    {
-        $user = wp_get_current_user();
-        $action = trim(strtolower($action));
-        if (strlen($action) === 0) {
-            $action = 'generic';
-        }
-        $nonce_type = $action . '_nonces';
-        // TODO check to see if always created for non-logged in users
-        $wp_session = \WP_Session::get_instance();
-        if (! isset($wp_session[$nonce_type])) {
-            $wp_session[$nonce_type] = array();
-        }
-        $nonce = UnpluggedStatic::generateNonce();
-        $expires = time() + $ttl;
-        $wp_session[$nonce_type][$nonce] = $expires;
-        return $nonce;
-    }//end awm_create_nonce()
-
-    
-    /**
-     * Validate that a particular nonce is valid, and invalidate it after
-     * validation.
-     *
-     * @param string $nonce  The nonce to validate.
-     * @param string $action Optional. Defaults to 'generic'.
-     *
-     * @return bool True if the nonce was valid, otherwise False.
-     */
-    function awm_verify_nonce(string $nonce, string $action = 'generic'): bool
-    {
-        $user = wp_get_current_user();
-        $action = trim(strtolower($action));
-        if (strlen($action) === 0) {
-            $action = 'generic';
-        }
-        $nonce_type = $action . '_nonces';
-        // TODO check to see if always created for non-logged in users
-        //  and destroyed upon logged in user logout
-        $wp_session = \WP_Session::get_instance();
-        if (! isset($wp_session[$nonce_type])) {
-            return false;
-        }
-        if (! isset($wp_session[$nonce_type][$nonce])) {
-            return false;
-        }
-        if (! is_numeric($wp_session[$nonce_type][$nonce])) {
-            return false;
-        }
-        $expires = intval($wp_session[$nonce_type][$nonce], 10);
-        if ($expires < time()) {
-            return false;
-        }
-        $wp_session[$nonce_type][$nonce] = 0;
-        return true;
-    }//end awm_verify_nonce()
-
 
     /* Password Functions */
     if ($useArgonHashing=get_option('PluggableUnpluggedUseArgon')) {
@@ -301,13 +234,16 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
              * @param string $password The plain text password.
              * @param int    $user_id  User ID.
              *
+             * @psalm-suppress UndefinedFunction
+             * @psalm-suppress UndefinedClass
+             *
              * @return void
              */
             function wp_set_password(string $password, int $user_id): void
             {
                 // fixme throw exception if bad/weak password
                 global $wpdb;
-                $hash = UnpluggedStatic::hashPassword($password);
+                $hash = \AWonderPHP\PluggableUnplugged\UnpluggedStatic::hashPassword($password);
                 $wpdb->update(
                     $wpdb->users,
                     array(
@@ -330,11 +266,13 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
              *
              * @param string $password The password to hash.
              *
+             * @psalm-suppress UndefinedClass
+             *
              * @return string The hashed password
              */
             function wp_hash_password($password)
             {
-                $hash = UnpluggedStatic::hashPassword($password);
+                $hash = \AWonderPHP\PluggableUnplugged\UnpluggedStatic::hashPassword($password);
                 sodium_memzero($password);
                 return $hash;
             }//end wp_hash_password()
@@ -352,6 +290,10 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
              * @param string     $password The password to be checked.
              * @param string     $hash     The hash to be checked.
              * @param null|int   $user_id  Optional. The user id to match against.
+             *
+             * @psalm-suppress UndefinedClass
+             * @psalm-suppress UndefinedConstant
+             * @psalm-suppress UnresolvableInclude
              *
              * @return bool True on success, False on failure.
              */
@@ -390,11 +332,11 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
                     return $check;
                 }
                 // doing things the right way
-                $check = UnpluggedStatic::checkPassword($password, $hash);
+                $check = \AWonderPHP\PluggableUnplugged\UnpluggedStatic::checkPassword($password, $hash);
                 if ($check) {
                     if (is_int($user_id)) {
                         // 20% of time this will recreate the hash
-                        $random = UnpluggedStatic::safeRandInt(0, 4);
+                        $random = \AWonderPHP\PluggableUnplugged\UnpluggedStatic::safeRandInt(0, 4);
                         if ($random === 3) {
                             wp_set_password($password, $user_id);
                         }
@@ -415,12 +357,18 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
              * @param bool $extra_special_chars Optional. Whether to include other special characters.
              *                                  Default False.
              *
+             * @psalm-suppress UndefinedClass
+             *
              * @return string The generated password.
              */
             // @codingStandardsIgnoreLine
             function wp_generate_password(int $length = 12, bool $special_chars = true, bool $extra_special_chars = false): string
             {
-                $password = UnpluggedStatic::generatePassword($length, $special_chars, $extra_special_chars);
+                $password = \AWonderPHP\PluggableUnplugged\UnpluggedStatic::generatePassword(
+                    $length,
+                    $special_chars,
+                    $extra_special_chars
+                );
                 return $password;
             }//end wp_generate_password()
         endif;
@@ -435,27 +383,17 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
          * @param int $min Lower limit for the generated number. Defaults to 0.
          * @param int $max Upper limit for the generated number. Defaultd to 0.
          *
+         * @psalm-suppress UndefinedClass
+         *
          * @return int A random number between the two parameters.
          */
         function wp_rand(int $min = 0, int $max = 0): int
         {
-            return UnpluggedStatic::safeRandInt($min, $max);
+            return \AWonderPHP\PluggableUnplugged\UnpluggedStatic::safeRandInt($min, $max);
         }//end wp_rand()
     endif;
     
     /* Gravatar functions */
-    /**
-     * Creates a footer informing the user their privacy is protected
-     *
-     * @return void
-     */
-    function groovytarFooter(): void
-    {
-        // @codingStandardsIgnoreLine
-        echo('<div style="text-align: center;">' . __('Anonymity protected with') . ' <a href="https://notrackers.com/pluggable-unplugged/" target="_blank">AWM Pluggable Unplugged</a></div>');
-        return;
-    }//end groovytarFooter()
-
     
     if (! function_exists('get_avatar')) :
         /**
@@ -467,14 +405,17 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
          * @param string     $default     Optional. The default type of avatar to use. Defaults to
          *                                system setting or 'monsterid'.
          * @param string     $alt         Optional. The img alt tag to use.
-         * @param null|array $args        Optional. Array of argument that impact creation of img node
+         * @param null|array $args        Optional. Array of argument that impact creation of img node.
+         *
+         * @psalm-suppress UndefinedFunction
+         * @psalm-suppress UndefinedClass
          *
          * @return string The img tag to use.
          */
         function get_avatar($id_or_email, $size = 96, $default = '', $alt = '', $args = null): string
         {
             /* Gravatar Obfuscation */
-            $groovytar = new Groovytar($salts);
+            $groovytar = new Groovytar();
             if (! $whitedomains=get_option('groovytarDomains')) {
                 $whitedomains=array();
             }
@@ -572,6 +513,10 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
     /**
      * The admin interface options menu.
      *
+     * @psalm-suppress UndefinedFunction
+     *
+     * @psalm-suppress UndefinedClass
+     *
      * @return void
      */
     function pluggableUnpluggedAdminOptions()
@@ -583,22 +528,24 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
             $chk=trim($_POST['pluggableUnpluggedAuthKey']);
             $key=trim(get_option('pluggableUnpluggedAuthKey'));
             if (strcmp($chk, $key) == 0) {
-                PluggbleUnpluggedAdmin::processForm();
+                \AWonderPHP\PluggableUnplugged\AdminMenu::processForm();
             }
         }
         echo('<div class="wrap">' . "\n");
         // @codingStandardsIgnoreLine
         echo('<div id="icon-options-general" class="icon32"><br /></div><h2>Pluggable Unplugged Administration</h2>' . "\n");
+        // @codingStandardsIgnoreLine
         echo('<form id="pluggableUnpluggedForm" method="post" action="options-general.php?page=PluggableUnpluggable">' . "\n");
-        $key=\AWonderPHP\PluggableUnplugged\UnpluggedStatic::generateNonce(24);
+        $key=\AWonderPHP\PluggableUnplugged\Misc::generateNonce(24);
         update_option('pluggableUnpluggedAuthKey', $key);
+        // @codingStandardsIgnoreLine
         echo('<input type="hidden" name="pluggableUnpluggedAuthKey" id="pluggableUnpluggedAuthKey" value="' . $key . '" />' . "\n");
     
-        PluggbleUnpluggedAdmin::domainMenu();
-        PluggbleUnpluggedAdmin::addressMenu();
-        PluggbleUnpluggedAdmin::saltMenu();
-        PluggbleUnpluggedAdmin::switchToArgon();
-        PluggbleUnpluggedAdmin::userNotify();
+        \AWonderPHP\PluggableUnplugged\AdminMenu::domainMenu();
+        \AWonderPHP\PluggableUnplugged\AdminMenu::addressMenu();
+        \AWonderPHP\PluggableUnplugged\AdminMenu::saltMenu();
+        \AWonderPHP\PluggableUnplugged\AdminMenu::switchToArgon();
+        \AWonderPHP\PluggableUnplugged\AdminMenu::userNotify();
     
         // @codingStandardsIgnoreLine
         echo('<p class="submit"><input type="submit" name="submit" id="submit" class="button button-primary" value="Save Changes" /></p>');
@@ -606,9 +553,22 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
         echo("</div>\n");
     }//end pluggableUnpluggedAdminOptions()
     
+    /**
+     * Options page for admin menu
+     *
+     * @psalm-suppress UndefinedFunction
+     *
+     * @return void
+     */
     function pluggableUnpluggedAdminMenu()
     {
-        add_options_page('PluggableUnpluggable Administration', 'PluggableUnpluggable', 'manage_options', 'PluggableUnpluggable', 'pluggableUnpluggedAdminOptions');
+        add_options_page(
+            'PluggableUnpluggable Administration',
+            'PluggableUnpluggable',
+            'manage_options',
+            'PluggableUnpluggable',
+            'pluggableUnpluggedAdminOptions'
+        );
         //add_submenu_page( $parent_slug, $page_title, $menu_title, $capability, $menu_slug, $function);
     }//end pluggableUnpluggedAdminMenu()
 
@@ -616,10 +576,14 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
     add_action('admin_menu', 'pluggableUnpluggedAdminMenu');
     
     if ($footerPermission=get_option('PluggableUnpluggedFooter')) {
-        add_action('wp_footer', 'groovytarFooter');
+        add_action('wp_footer', '\AWonderPHP\Groovytar\WordPressGroovytar::groovytarFooter');
     }
     
-    // TGMPA
+    /**
+     * TGMPA menu
+     *
+     * @return void
+     */
     function pluggableUnpluggedTGMPA()
     {
         $plugins = array(
