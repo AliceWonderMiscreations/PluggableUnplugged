@@ -415,7 +415,7 @@ if (function_exists('sodium_memzero') && (PHP_MAJOR_VERSION >= 7)) {
         function get_avatar($id_or_email, $size = 96, $default = '', $alt = '', $args = null): string
         {
             /* Gravatar Obfuscation */
-            $groovytar = new Groovytar($salts);
+            $groovytar = new Groovytar();
             if (! $whitedomains=get_option('groovytarDomains')) {
                 $whitedomains=array();
             }

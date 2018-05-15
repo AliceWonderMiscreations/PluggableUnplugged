@@ -1,22 +1,13 @@
 PluggableUnplugged
 ==================
 
-__LICENSE NOTE__: I prefer MIT License and release this project under that very
-liberal license. However WordPress likes the less liberal GPLv2. So I dual
-license just because I am a nice guy. I consider this project MIT but the
-plugin as delivered to the WordPress plugin repository is specified as GPLv2.
-That also means that the inclusion of the TGMPA library in the version of this
-plugin as installed from within WordPress has no conflict.
-
-The shell script [mkwordpresszip.sh](mkwordpresszip.sh) changes the declared
-license in my PHP files when creating the version of this code that available
-(er, will be available) from the WordPress plugin repository.
-
--=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-
 This plugin definitely works with the PHP 7.1.x branch, *probably* works with
 the PHP 7.2.x branch, and *likely* works with the PHP 7.0.0 branch, though I
 encourage PHP 7.0.0 users to upgrade to at least 7.1.x.
+
+This plugin *requires* you use a the PSR-4 autoloader described at
+[https://notrackers.com/wordpress-plugins/autoloader/] with the companion
+[AWonderPHP Class Collection](https://github.com/AliceWonderMiscreations/AWonderPHP).
 
 This plugin does not work with PHP 5.6.x or earlier, and users of PHP 5.6.x or
 earlier really should upgrade, your PHP install is slow and out of date.
@@ -27,19 +18,23 @@ is built by default starting with PHP 7.2 but it must be installed separately
 for either earlier versions of PHP or with PHP 7.2.x where it was specifically
 not built when PHP was compiled.
 
-This is the github readme, intended primarily for developers. Non-developers
-are of course free to read this, but *may* be better served by the readme that
-is not yet written but will accompany the actual plugin.
-
-The end user readme: [readme.txt](readme.txt)
-
-This plugin does five things:
+This plugin provides four features:
 
 * [Generate WordPress Config Salts](#wordpress-config-salts)
 * [Better Hash, Salt, and WordPress Nonce Generation](#better-hash-salt-and-wordpress-nonce-generation)
 * [Blog Comment Avatars with Privacy](#blog-comment-avatars-with-privacy)
 * [Optional Argon2id Password Hashing](#optional-argon2id-password-hashing)
-* [UnpluggedStatic Class](#unpluggedstatic-class)
+
+To install from a git checkout, simply run the command
+
+    php createZipArchive.php
+
+fron within the top level `PluggableUnplugged` directory. That will create a
+zip archive that you can then transfer to your server and unzip inside your
+`wp-content/plugins` directory.
+
+Just remember you have to have the PSR-R autoloader installed with the
+`AWonderPHP` collection of classes installed first.
 
 
 WordPress Config Salts
@@ -90,7 +85,7 @@ function, the result of which is then base64 encoded and then finally shuffled
 (which is why the padding `==` is not at the end).
 
 64 bytes is significantly more than the 256 bits (32 bytes) of random data I
-personally usually recommend for a salt that is to be used more than once.
+often see recommended for salts that is to be used more than once.
 
 I personally like to change my salts every time I do a major update that
 requires downtime just to make previous salts invalid, since WordPress uses
@@ -113,7 +108,8 @@ The WordPress functions for creating non-password related hashes use the PHP
 
 There is no good reason to continue using `md5`,
 [md5 is broken](https://en.wikipedia.org/wiki/MD5#Security) and there just is
-not a justifiable reason to keep using it.
+not a justifiable reason to keep using it. On 64-but systems it also is often
+much slower than more modern methods of generating a hash.
 
 The `wp_hash()` function is replaced in this plugin by one that uses
 `sodium_crypto_generichash()` instead. That is a secure alternative to
@@ -179,26 +175,6 @@ Unfortunately it still creates the token in a predictable way and reuses the
 same token many times during the given time period it is valid for, but it
 isn't *quite as bad* as the native WordPress ‘nonce’ generation.
 
-For those writing WordPress plugins who want an *actual nonce* instead of the
-less secure token that WordPress calls a nonce, this plugin provides two
-non-standard functions you can use:
-
-* `awm_create_nonce(int $ttl = 10800, string $action = 'generic'): string`  
-  This function creates a random 128-bit nonce, stores it in the user
-  session data associated with the specified `$action`, and returns the
-  nonce so that it can be included as a hidden input in a generated form.
-
-* `awm_verify_nonce(string $nonce, string $action = 'generic'): bool`  
-  This function verifies that the specified nonce has been stored in the user's
-  session data associated with the specified `$action` and then invalidates
-  it from validating in the future, as it has been used. It returns `true`
-  when it is fed a nonce that validates, and `false` when it is fed a nonce
-  that does not validate.
-
-If you write plugins and have need for a CSRF token, if you do not mind your
-plugin requiring this one, you can safely use those functions for your CSRF
-nonce validation instead of the less secure WordPress versions.
-
 
 Blog Comment Avatars with Privacy
 ---------------------------------
@@ -247,25 +223,6 @@ serve the user's desired image in response to that specific hash.
 The system will be both opt-in and opt-out with the user having complete
 control over whether or not an image they uploaded is used and at what blogs it
 is used.
-
-#### Non-obfuscation
-
-Presently a system administrator may create a white list of domains and/or
-e-mail addresses where the hash is not obfuscated. Once gravatar.com is no
-longer used, that option will no longer be necessary.
-
-#### PHP Classes
-
-A generic abstract class in the file `lib/Groovytar.php` does most of the work.
-
-A WordPress specific class `lib/WordPressGroovytar.php` extends that class so
-that it can deal with WordPress specific issues, like extracting the e-mail to
-hash from a WordPress post object.
-
-This was done because in the past when I created Gravatar obfuscation
-solutions, WordPress changed to break my obfuscation. A WordPress specific
-class that extends a generic class seemed like the easiest way to deal with
-such changes in the future, as I suspect they are likely to happen again.
 
 
 Optional Argon2id Password Hashing
@@ -324,33 +281,6 @@ the hardware to be taken into consideration resulting in a stronger hash that
 is even more computational and memory resource intensive to try and brute force
 with a dictionary attack.
 
-
-UnpluggedStatic Class
----------------------
-
-This plugin provides a namespaced class of static functions called
-`\AWonderPHP\PluggableUnplugged\UnpluggedStatic` that exists to provide
-functions of benefit both to this plugin and potentially to other plugins.
-
-Placing the functions as static methods inside a namespaced class makes it
-easy to avoid function name collisions with functions provided by other
-plugins.
-
-For example, the WordPress `wp_rand()` function does the right thing but a
-plugin developer probably should not use it because any plugin can *replace*
-that function with one that does __not__ do the right thing.
-
-The UnpluggedStatic class hopes to provide stable functions within a namespace
-that won't be replaced by other plugins, e.g.
-
-    \AWonderPHP\PluggableUnplugged\UnpluggedStatic::safeRandInt($a, $b)
-
-To safely produce a random integer between `$a` and `$b` inclusive regardless
-of what other plugins may have redefined `wp_rand()` to do.
-
-Please note that as I continue to develop additional privacy related plugins,
-this class will receive updates to include additional static methods that are
-generic in nature and potentially useful to other plugins.
 
 ---------------------------------------------------
 __EOF__

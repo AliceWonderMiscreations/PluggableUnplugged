@@ -11,7 +11,7 @@
  */
 
 $timezone = 'America/Los_Angeles';
-$pluginName = 'AWM_Pluggable_Unplugged';
+$pluginName = 'AWM Pluggable Unplugged';
 $url = 'https://github.com/AliceWonderMiscreations/PluggableUnplugged/';
 $file_hash_algo = 'ripemd160';
 $excludedirlist = array('vendor', 'tests');
@@ -172,14 +172,16 @@ $classDigest = __DIR__ . '/PluginDigest.xml';
 $write = file_put_contents($classDigest, $digest->saveXML());
 if (! is_bool($write)) {
   //create zip archive
-    $archiveName = $pluginName . '-' . $now . '.zip';
+    $zipPluginName = strtolower($pluginName);
+    $zipPluginName = preg_replace('/\s+/', '-', $zipPluginName);
+    $archiveName = $zipPluginName . '-' . $now . '.zip';
     $zip = new ZipArchive();
   
     $zip->open($archiveName, ZipArchive::CREATE);
-    $zip->addFile($classDigest, $pluginName . '/PluginDigest.xml');
+    $zip->addFile($classDigest, $zipPluginName . '/PluginDigest.xml');
     foreach ($filelist as $file) {
         $fullpath = __DIR__ . '/' . $file;
-        $zip->addFile($fullpath, $pluginName . '/' . $file);
+        $zip->addFile($fullpath, $zipPluginName . '/' . $file);
     }
     $zip->close();
     echo "Archive Collection Created. Please double check contents.\n";
