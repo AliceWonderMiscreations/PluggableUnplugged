@@ -2,4 +2,6 @@
 *.bak
 composer.lock
 phpcs.xml
+PluginDigest.xml
+*.zip
 vendor/*
